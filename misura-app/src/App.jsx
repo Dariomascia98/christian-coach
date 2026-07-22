@@ -33,21 +33,6 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 // username instead of an email address.
 function toFakeEmail(username) {
   const clean = username.trim().toLowerCase();
-  function exKey(val) {
-  if (!val) return "";
-  return val.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
-}
-
-  // Se l'utente ha scritto l'email completa (con la @), la usa direttamente
-  if (clean.includes('@')) {
-    return clean;
-  }
-  
-  // Se inserisce solo lo username (es. dario_mascia), aggiunge @coach.com
-  return `${clean.replace(/[^a-z0-9._-]/g, "")}@coach.com`;
-}
-function toFakeEmail(username) {
-  const clean = username.trim().toLowerCase();
 
   // Se l'utente ha scritto l'email completa (con la @), la usa direttamente
   if (clean.includes('@')) {
@@ -58,11 +43,11 @@ function toFakeEmail(username) {
   return `${clean.replace(/[^a-z0-9._-]/g, "")}@coach.com`;
 }
 
-// Spostata QUI OUTSIDE, così è globale per tutta l'app:
 function exKey(val) {
   if (!val) return "";
   return val.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
 }
+
 
 
 function mapAuthError(error) {
