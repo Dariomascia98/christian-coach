@@ -32,8 +32,17 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 // trainer/client's chosen username so people keep logging in with a plain
 // username instead of an email address.
 function toFakeEmail(username) {
-  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@coach.com`;
+  const clean = username.trim().toLowerCase();
+  
+  // Se l'utente ha scritto l'email completa (con la @), la usa direttamente
+  if (clean.includes('@')) {
+    return clean;
+  }
+  
+  // Se inserisce solo lo username (es. dario_mascia), aggiunge @coach.com
+  return `${clean.replace(/[^a-z0-9._-]/g, "")}@coach.com`;
 }
+
 
 function mapAuthError(error) {
   if (!error) return null;
