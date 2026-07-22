@@ -576,7 +576,7 @@ function Header({ title, subtitle, onBack, onLogout }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Ruler size={16} color={C.accent} />
-              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>MISURA</span>
+              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>CHRIS_COACH</span>
             </div>
             <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: 0 }}>{subtitle}</p>
           </div>
