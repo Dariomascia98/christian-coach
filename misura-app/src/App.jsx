@@ -59,7 +59,7 @@ async function fetchClients(trainerId) {
   if (error) return [];
   return data;
 }
-const migrateProgram = (data) => data;
+const migrateProgram = (data) => data || { days: [] };
 async function fetchProgram(clientId) {
   const { data, error } = await supabase.from("programs").select("data").eq("client_id", clientId).maybeSingle();
   if (error || !data) return migrateProgram(null);
