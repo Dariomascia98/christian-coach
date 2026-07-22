@@ -33,7 +33,11 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 // username instead of an email address.
 function toFakeEmail(username) {
   const clean = username.trim().toLowerCase();
-  
+  function exKey(val) {
+  if (!val) return "";
+  return val.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+}
+
   // Se l'utente ha scritto l'email completa (con la @), la usa direttamente
   if (clean.includes('@')) {
     return clean;
