@@ -460,7 +460,7 @@ function Logo() {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center" }}>
       <Ruler size={22} color={C.accent} />
-      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0 }}>MISURA</h1>
+      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0 }}>CHRIS_COACH</h1>
     </div>
   );
 }
