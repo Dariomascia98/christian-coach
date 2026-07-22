@@ -47,9 +47,13 @@ function exKey(val) {
   if (!val) return "";
   return val.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
 }
-
-
-
+function todayCode() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 function mapAuthError(error) {
   if (!error) return null;
   const msg = error.message || String(error);
