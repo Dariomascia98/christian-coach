@@ -78,6 +78,32 @@ async function fetchClients(trainerId) {
   if (error) return [];
   return data;
 }
+async function createClientRemote(trainerId, { name, username, password }) {
+  const email = toFakeEmail(username);
+
+  // 1. Crea l'utente su Supabase Auth
+  const { data, error: authErr } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (authErr) return { error: authErr.message };
+  if (!data?.user) return { error: "Impossibile creare l'utente su Auth." };
+
+  // 2. Salva il profilo cliente nel database legandolo all'ID Auth
+  const { error: dbErr } = await supabase.from("profiles").insert({
+    id: data.user.id,
+    name: name,
+    username: username.trim(),
+    role: "client",
+    created_by: trainerId,
+  });
+
+  if (dbErr) return { error: dbErr.message };
+
+  return { success: true, user: data.user };
+}
+
 const WEEKDAYS = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 const migrateProgram = (data) => data || { days: [] };
 async function fetchProgram(clientId) {
@@ -1157,11 +1183,15 @@ export default function App() {
   };
 
   const handleAddClient = async (form, cb) => {
-    const result = await callServerFunction("/api/create-client", form);
-    if (!result.ok) { cb(result.error); return; }
-    setClients(await fetchClients(profile.id));
-    cb(null);
-  };
+  const result = await createClientRemote(profile.id, form);
+  if (result.error) {
+    cb(result.error);
+    return;
+  }
+  setClients(await fetchClients(profile.id));
+  cb(null);
+};
+
 
   const handleDeleteClient = async (clientId) => {
     const result = await callServerFunction("/api/delete-client", { clientId });
