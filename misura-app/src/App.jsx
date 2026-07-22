@@ -59,6 +59,7 @@ async function fetchClients(trainerId) {
   if (error) return [];
   return data;
 }
+const WEEKDAYS = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 const migrateProgram = (data) => data || { days: [] };
 async function fetchProgram(clientId) {
   const { data, error } = await supabase.from("programs").select("data").eq("client_id", clientId).maybeSingle();
