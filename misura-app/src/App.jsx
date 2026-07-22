@@ -32,7 +32,7 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 // trainer/client's chosen username so people keep logging in with a plain
 // username instead of an email address.
 function toFakeEmail(username) {
-  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@misura.com`;
+  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@misura.local`;
 }
 
 function mapAuthError(error) {
