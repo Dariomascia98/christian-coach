@@ -260,7 +260,8 @@ function VideoModal({ url, onClose }) {
 
 // ---------- Load tracker modal: weights/reps used per exercise over time ----------
 function LoadModal({ exerciseName, clientId, onClose }) {
-  const key = exKey(exerciseName);
+const key = exerciseName ? exerciseName.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "") : "";
+
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), weight: "", reps: "", sets: "" });
