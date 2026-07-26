@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   LogOut, Plus, Trash2, ChevronLeft, Dumbbell, TrendingUp, Camera,
-  X, PlayCircle, Users as UsersIcon, Ruler, Check, ImageOff
+  X, PlayCircle, Users as UsersIcon, Ruler, Check, ImageOff,
+  ClipboardList, Copy, Printer
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -32,28 +33,9 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 // trainer/client's chosen username so people keep logging in with a plain
 // username instead of an email address.
 function toFakeEmail(username) {
-  const clean = username.trim().toLowerCase();
-
-  // Se l'utente ha scritto l'email completa (con la @), la usa direttamente
-  if (clean.includes('@')) {
-    return clean;
-  }
-
-  // Se inserisce solo lo username (es. dario_mascia), aggiunge @coach.com
-  return `${clean.replace(/[^a-z0-9._-]/g, "")}@coach.com`;
+  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@misura.local`;
 }
 
-function exKey(val) {
-  if (!val) return "";
-  return val.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
-}
-function todayCode() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 function mapAuthError(error) {
   if (!error) return null;
   const msg = error.message || String(error);
@@ -78,34 +60,7 @@ async function fetchClients(trainerId) {
   if (error) return [];
   return data;
 }
-async function createClientRemote(trainerId, { name, username, password }) {
-  const email = toFakeEmail(username);
 
-  // 1. Crea l'utente su Supabase Auth
-  const { data, error: authErr } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (authErr) return { error: authErr.message };
-  if (!data?.user) return { error: "Impossibile creare l'utente su Auth." };
-
-  // 2. Salva il profilo cliente nel database legandolo all'ID Auth
-  const { error: dbErr } = await supabase.from("profiles").insert({
-    id: data.user.id,
-    name: name,
-    username: username.trim(),
-    role: "client",
-    created_by: trainerId,
-  });
-
-  if (dbErr) return { error: dbErr.message };
-
-  return { success: true, user: data.user };
-}
-
-const WEEKDAYS = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
-const migrateProgram = (data) => data || { days: [] };
 async function fetchProgram(clientId) {
   const { data, error } = await supabase.from("programs").select("data").eq("client_id", clientId).maybeSingle();
   if (error || !data) return migrateProgram(null);
@@ -154,6 +109,18 @@ async function saveLoads(clientId, loadsObj) {
   return !error;
 }
 
+async function fetchIntake(clientId) {
+  const { data, error } = await supabase.from("intake").select("data").eq("client_id", clientId).maybeSingle();
+  if (error || !data) return {};
+  return data.data || {};
+}
+async function saveIntakeRemote(clientId, intake) {
+  const { error } = await supabase
+    .from("intake")
+    .upsert({ client_id: clientId, data: intake, updated_at: new Date().toISOString() });
+  return !error;
+}
+
 async function getAccessToken() {
   const { data } = await supabase.auth.getSession();
   return data?.session?.access_token || null;
@@ -174,6 +141,45 @@ async function callServerFunction(path, body) {
   } catch (e) {
     return { ok: false, error: e?.message || "Errore di rete." };
   }
+}
+
+function exKey(name) {
+  return (name || "").trim().toLowerCase();
+}
+
+const WEEKDAYS = [
+  { code: "LU", label: "Lun" },
+  { code: "MA", label: "Mar" },
+  { code: "ME", label: "Mer" },
+  { code: "GI", label: "Gio" },
+  { code: "VE", label: "Ven" },
+  { code: "SA", label: "Sab" },
+  { code: "DO", label: "Dom" },
+];
+function todayCode() {
+  const map = ["DO", "LU", "MA", "ME", "GI", "VE", "SA"]; // JS getDay(): 0=Sun..6=Sat
+  return map[new Date().getDay()];
+}
+
+// Upgrades older saved programs (flat list of exercises per day) into the
+// block-based format, where a "block" holds 1+ exercises: 1 exercise = a
+// normal single set, 2 = a superset, 3+ = a circuit. Also ensures every day
+// has a `weekdays` array for calendar scheduling. Safe to run on already
+// up-to-date data.
+function migrateProgram(raw) {
+  if (!raw) return { days: [], updatedAt: null };
+  const days = (raw.days || []).map((day) => {
+    if (day.blocks) return { ...day, weekdays: day.weekdays || [] };
+    const blocks = (day.exercises || []).map((ex) => ({
+      id: ex.id || uid(),
+      rounds: ex.sets || "",
+      restBetweenExercises: "",
+      restAfterRound: ex.rest || "",
+      exercises: [{ id: uid(), name: ex.name || "", reps: ex.reps || "", note: ex.note || "", videoUrl: ex.videoUrl || "" }],
+    }));
+    return { id: day.id, label: day.label, weekdays: day.weekdays || [], blocks };
+  });
+  return { ...raw, days };
 }
 
 function uid() {
@@ -296,8 +302,7 @@ function VideoModal({ url, onClose }) {
 
 // ---------- Load tracker modal: weights/reps used per exercise over time ----------
 function LoadModal({ exerciseName, clientId, onClose }) {
-const key = exerciseName ? exerciseName.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "") : "";
-
+  const key = exKey(exerciseName);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), weight: "", reps: "", sets: "" });
@@ -506,7 +511,7 @@ function Logo() {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center" }}>
       <Ruler size={22} color={C.accent} />
-      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0 }}>CHRIS_COACH</h1>
+      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0 }}>MISURA</h1>
     </div>
   );
 }
@@ -517,6 +522,18 @@ function FontImport() {
       @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
       *:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
       input::placeholder { color: ${C.textDim}; }
+
+      @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        body, #root, #root * {
+          background: #ffffff !important;
+          color: #111111 !important;
+          border-color: #cccccc !important;
+          box-shadow: none !important;
+        }
+        #root { padding: 0 !important; }
+      }
     `}</style>
   );
 }
@@ -622,7 +639,7 @@ function Header({ title, subtitle, onBack, onLogout }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Ruler size={16} color={C.accent} />
-              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>CHRIS_COACH</span>
+              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>MISURA</span>
             </div>
             <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: 0 }}>{subtitle}</p>
           </div>
@@ -648,18 +665,21 @@ function EmptyState({ icon, text }) {
 }
 
 // ---------- Client workspace (used by both trainer viewing a client, and the client themself) ----------
-function ClientWorkspace({ client, isTrainer, viewerId, onBack, onLogout }) {
-  const [tab, setTab] = useState("programma");
+function ClientWorkspace({ client, isTrainer, viewerId, siblingClients, onBack, onLogout }) {
+  const [tab, setTab] = useState("anamnesi");
   const [program, setProgram] = useState(null);
   const [progress, setProgress] = useState([]);
+  const [intake, setIntake] = useState({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const p = await fetchProgram(client.id);
     const pr = await fetchProgress(client.id);
+    const ik = await fetchIntake(client.id);
     setProgram(p);
     setProgress(pr);
+    setIntake(ik);
     setLoading(false);
   }, [client.id]);
 
@@ -677,26 +697,44 @@ function ClientWorkspace({ client, isTrainer, viewerId, onBack, onLogout }) {
     await saveProgressRemote(client.id, updated);
   };
 
+  const saveIntake = async (newIntake) => {
+    setIntake(newIntake);
+    await saveIntakeRemote(client.id, newIntake);
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <FontImport />
-      <Header
-        title={isTrainer ? client.name : `Ciao, ${client.name}`}
-        subtitle={isTrainer ? "Scheda cliente" : "Il tuo percorso"}
-        onBack={isTrainer ? onBack : undefined}
-        onLogout={onLogout}
-      />
+      <div className="no-print">
+        <Header
+          title={isTrainer ? client.name : `Ciao, ${client.name}`}
+          subtitle={isTrainer ? "Scheda cliente" : "Il tuo percorso"}
+          onBack={isTrainer ? onBack : undefined}
+          onLogout={onLogout}
+        />
+      </div>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 20px 60px" }}>
-        <div style={{ display: "flex", gap: 8, marginTop: 20, marginBottom: 6 }}>
+        <div className="no-print" style={{ display: "flex", gap: 8, marginTop: 20, marginBottom: 6, flexWrap: "wrap" }}>
+          <TabBtn active={tab === "anamnesi"} onClick={() => setTab("anamnesi")} icon={<ClipboardList size={15} />} label="Anamnesi" />
           <TabBtn active={tab === "programma"} onClick={() => setTab("programma")} icon={<Dumbbell size={15} />} label="Programma" />
           <TabBtn active={tab === "progressi"} onClick={() => setTab("progressi")} icon={<TrendingUp size={15} />} label="Progressi" />
         </div>
-        <TapeDivider />
+        <div className="no-print"><TapeDivider /></div>
 
         {loading ? (
           <p style={{ ...fontBody, color: C.textDim }}>Caricamento...</p>
+        ) : tab === "anamnesi" ? (
+          <IntakeSection intake={intake} isTrainer={isTrainer} onSave={saveIntake} />
         ) : tab === "programma" ? (
-          <ProgramSection program={program} isTrainer={isTrainer} clientId={client.id} trainerId={viewerId} onSave={saveProgram} />
+          <ProgramSection
+            program={program}
+            isTrainer={isTrainer}
+            clientId={client.id}
+            clientName={client.name}
+            trainerId={viewerId}
+            siblingClients={siblingClients}
+            onSave={saveProgram}
+          />
         ) : (
           <ProgressSection entries={progress} onAdd={addProgressEntry} />
         )}
@@ -720,7 +758,175 @@ function TabBtn({ active, onClick, icon, label }) {
   );
 }
 
-// ---------- Program section (weekly schedule + block-based days: singolo/superset/circuito) ----------
+// ---------- Intake section (anamnesi) ----------
+const ACTIVITY_LEVELS = [
+  { value: "sedentario", label: "Sedentario", mult: 1.2 },
+  { value: "leggero", label: "Leggero (1-3 giorni/sett.)", mult: 1.375 },
+  { value: "moderato", label: "Moderato (3-5 giorni/sett.)", mult: 1.55 },
+  { value: "intenso", label: "Intenso (6-7 giorni/sett.)", mult: 1.725 },
+  { value: "molto_intenso", label: "Molto intenso (atleta/lavoro fisico)", mult: 1.9 },
+];
+
+function calcBmrTdee({ sex, age, heightCm, weightKg, activityLevel }) {
+  const a = parseFloat(age), h = parseFloat(heightCm), w = parseFloat(weightKg);
+  if (!a || !h || !w) return null;
+  // Mifflin-St Jeor
+  const bmr = sex === "F" ? 10 * w + 6.25 * h - 5 * a - 161 : 10 * w + 6.25 * h - 5 * a + 5;
+  const level = ACTIVITY_LEVELS.find((l) => l.value === activityLevel) || ACTIVITY_LEVELS[1];
+  return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult) };
+}
+
+function IntakeSection({ intake, isTrainer, onSave }) {
+  const [editing, setEditing] = useState(isTrainer && !intake?.goal);
+  const [form, setForm] = useState({
+    birthDate: intake.birthDate || "",
+    sex: intake.sex || "M",
+    heightCm: intake.heightCm || "",
+    startingWeight: intake.startingWeight || "",
+    activityLevel: intake.activityLevel || "moderato",
+    goal: intake.goal || "",
+    injuries: intake.injuries || "",
+    notes: intake.notes || "",
+  });
+
+  useEffect(() => {
+    setForm({
+      birthDate: intake.birthDate || "",
+      sex: intake.sex || "M",
+      heightCm: intake.heightCm || "",
+      startingWeight: intake.startingWeight || "",
+      activityLevel: intake.activityLevel || "moderato",
+      goal: intake.goal || "",
+      injuries: intake.injuries || "",
+      notes: intake.notes || "",
+    });
+  }, [intake]);
+
+  const age = form.birthDate ? Math.floor((Date.now() - new Date(form.birthDate).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+  const metabolism = calcBmrTdee({ sex: form.sex, age, heightCm: form.heightCm, weightKg: form.startingWeight, activityLevel: form.activityLevel });
+
+  const save = () => { onSave(form); setEditing(false); };
+
+  if (isTrainer && editing) {
+    return (
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Field label="Data di nascita" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} type="date" />
+          <div style={{ marginBottom: 14, textAlign: "left" }}>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
+            <select
+              value={form.sex}
+              onChange={(e) => setForm({ ...form, sex: e.target.value })}
+              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14, outline: "none" }}
+            >
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+          <Field label="Altezza (cm)" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} type="number" />
+          <Field label="Peso di partenza (kg)" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} type="number" />
+        </div>
+
+        <div style={{ marginBottom: 14, textAlign: "left" }}>
+          <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
+          <select
+            value={form.activityLevel}
+            onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+            style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14, outline: "none" }}
+          >
+            {ACTIVITY_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+          </select>
+        </div>
+
+        <TextArea label="Obiettivo principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} placeholder="Es. ipertrofia, dimagrimento, forza, riabilitazione..." />
+        <TextArea label="Infortuni / patologie / limitazioni" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} placeholder="Es. ernia L5, spalla operata nel 2023..." />
+        <TextArea label="Note aggiuntive" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+
+        <button onClick={save} style={primaryBtn}><Check size={16} /> Salva anamnesi</button>
+      </div>
+    );
+  }
+
+  const hasData = intake && (intake.goal || intake.birthDate || intake.injuries);
+  if (!hasData) {
+    return (
+      <div>
+        {isTrainer && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <button onClick={() => setEditing(true)} style={secondaryBtn}>Compila anamnesi</button>
+          </div>
+        )}
+        <EmptyState icon={<ClipboardList size={26} color={C.textDim} />} text={isTrainer ? "Nessuna anamnesi compilata ancora." : "Il trainer non ha ancora compilato la tua anamnesi."} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {isTrainer && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button onClick={() => setEditing(true)} style={secondaryBtn}>Modifica anamnesi</button>
+        </div>
+      )}
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <InfoRow label="Età" value={age ? `${age} anni` : "—"} />
+          <InfoRow label="Sesso" value={form.sex} />
+          <InfoRow label="Altezza" value={form.heightCm ? `${form.heightCm} cm` : "—"} />
+          <InfoRow label="Peso di partenza" value={form.startingWeight ? `${form.startingWeight} kg` : "—"} />
+        </div>
+        {metabolism && (
+          <div style={{ display: "flex", gap: 20, padding: "10px 0", borderTop: `1px dashed ${C.border}` }}>
+            <div>
+              <p style={{ ...fontMono, fontSize: 10, color: C.textDim }}>METABOLISMO BASALE</p>
+              <p style={{ ...fontDisplay, fontSize: 20, color: C.accent }}>{metabolism.bmr} kcal</p>
+            </div>
+            <div>
+              <p style={{ ...fontMono, fontSize: 10, color: C.textDim }}>TDEE STIMATO</p>
+              <p style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{metabolism.tdee} kcal</p>
+            </div>
+          </div>
+        )}
+      </div>
+      {form.goal && <InfoBlock label="Obiettivo" text={form.goal} />}
+      {form.injuries && <InfoBlock label="Infortuni / limitazioni" text={form.injuries} accent />}
+      {form.notes && <InfoBlock label="Note" text={form.notes} />}
+    </div>
+  );
+}
+
+function TextArea({ label, value, onChange, placeholder }) {
+  return (
+    <div style={{ marginBottom: 14, textAlign: "left" }}>
+      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{label.toUpperCase()}</label>
+      <textarea
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        rows={2}
+        style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14, outline: "none", resize: "vertical" }}
+      />
+    </div>
+  );
+}
+function InfoRow({ label, value }) {
+  return (
+    <div>
+      <p style={{ ...fontMono, fontSize: 10, color: C.textDim }}>{label.toUpperCase()}</p>
+      <p style={{ ...fontBody, fontSize: 14, color: C.text }}>{value}</p>
+    </div>
+  );
+}
+function InfoBlock({ label, text, accent }) {
+  return (
+    <div style={{ background: C.panel, border: `1px solid ${accent ? C.accent : C.border}`, borderRadius: 10, padding: 12, marginBottom: 10 }}>
+      <p style={{ ...fontMono, fontSize: 10, color: accent ? C.accent : C.textDim, marginBottom: 4 }}>{label.toUpperCase()}</p>
+      <p style={{ ...fontBody, fontSize: 14, color: C.text, whiteSpace: "pre-wrap" }}>{text}</p>
+    </div>
+  );
+}
+
+
 function blockLabel(dayIndexIgnored, blockIndex) {
   return String.fromCharCode(65 + blockIndex); // A, B, C...
 }
@@ -754,18 +960,78 @@ function WeekStrip({ days }) {
   );
 }
 
-function ProgramSection({ program, isTrainer, clientId, trainerId, onSave }) {
+function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, siblingClients, onSave }) {
   const [editing, setEditing] = useState(isTrainer && program.days.length === 0);
   const [days, setDays] = useState(program.days);
   const [videoModal, setVideoModal] = useState(null);
   const [loadModalEx, setLoadModalEx] = useState(null);
   const [library, setLibrary] = useState([]);
+  const [showAiForm, setShowAiForm] = useState(false);
+  const [aiForm, setAiForm] = useState({ goal: "", daysPerWeek: "4", level: "intermedio", notes: "" });
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [showCloneForm, setShowCloneForm] = useState(false);
+  const [cloneBusy, setCloneBusy] = useState(false);
+  const [cloneError, setCloneError] = useState("");
 
   useEffect(() => { setDays(program.days); }, [program]);
   useEffect(() => { if (isTrainer && trainerId) loadLibrary(trainerId).then(setLibrary); }, [isTrainer, trainerId]);
 
   const newExercise = () => ({ id: uid(), name: "", reps: "", note: "", videoUrl: "" });
   const newBlock = () => ({ id: uid(), rounds: "3", restBetweenExercises: "", restAfterRound: "90s", exercises: [newExercise()] });
+
+  // Rebuilds every id fresh so the copy never shares references with the
+  // source client's program (editing one could never accidentally touch the other).
+  const cloneDaysWithFreshIds = (sourceDays) => (sourceDays || []).map((d) => ({
+    id: uid(),
+    label: d.label || "Giorno",
+    weekdays: d.weekdays || [],
+    blocks: (d.blocks || []).map((b) => ({
+      id: uid(),
+      rounds: b.rounds || "3",
+      restBetweenExercises: b.restBetweenExercises || "",
+      restAfterRound: b.restAfterRound || "",
+      exercises: (b.exercises || []).map((ex) => ({ id: uid(), name: ex.name || "", reps: ex.reps || "", note: ex.note || "", videoUrl: ex.videoUrl || "" })),
+    })),
+  }));
+
+  const cloneFromClient = async (sourceClient) => {
+    if (days.length > 0 && !window.confirm(`Copiare la scheda di ${sourceClient.name}? Sostituirà i giorni attuali nell'editor (non ancora salvati).`)) return;
+    setCloneBusy(true);
+    setCloneError("");
+    const sourceProgram = await fetchProgram(sourceClient.id);
+    setCloneBusy(false);
+    if (!sourceProgram || !sourceProgram.days || sourceProgram.days.length === 0) {
+      setCloneError(`${sourceClient.name} non ha ancora una scheda salvata.`);
+      return;
+    }
+    setDays(cloneDaysWithFreshIds(sourceProgram.days));
+    setShowCloneForm(false);
+  };
+
+  const generateWithAi = async () => {
+    if (!aiForm.goal.trim()) { setAiError("Descrivi l'obiettivo del cliente."); return; }
+    if (days.length > 0 && !window.confirm("Questo sostituirà i giorni attuali nell'editor (non ancora salvati). Continuare?")) return;
+    setAiBusy(true);
+    setAiError("");
+    const result = await callServerFunction("/api/generate-program", aiForm);
+    setAiBusy(false);
+    if (!result.ok) { setAiError(result.error); return; }
+    const newDays = (result.data.days || []).map((d) => ({
+      id: uid(),
+      label: d.label || "Giorno",
+      weekdays: Array.isArray(d.weekdays) ? d.weekdays.filter((c) => WEEKDAYS.some((w) => w.code === c)) : [],
+      blocks: (d.blocks || []).map((b) => ({
+        id: uid(),
+        rounds: b.rounds || "3",
+        restBetweenExercises: b.restBetweenExercises || "",
+        restAfterRound: b.restAfterRound || "90s",
+        exercises: (b.exercises || []).map((ex) => ({ id: uid(), name: ex.name || "", reps: ex.reps || "", note: ex.note || "", videoUrl: "" })),
+      })),
+    }));
+    setDays(newDays);
+    setShowAiForm(false);
+  };
 
   const addDay = () => setDays([...days, { id: uid(), label: `Giorno ${String.fromCharCode(65 + days.length)}`, weekdays: [], blocks: [] }]);
   const removeDay = (dayId) => setDays(days.filter((d) => d.id !== dayId));
@@ -828,6 +1094,64 @@ function ProgramSection({ program, isTrainer, clientId, trainerId, onSave }) {
   if (isTrainer && editing) {
     return (
       <div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {siblingClients && siblingClients.length > 0 && (
+            <button onClick={() => setShowCloneForm((s) => !s)} style={secondaryBtn}>
+              <Copy size={14} /> Copia da un cliente
+            </button>
+          )}
+          <button onClick={() => setShowAiForm((s) => !s)} style={{ ...secondaryBtn, borderColor: C.accent, color: C.accent }}>
+            ✨ Genera con AI
+          </button>
+        </div>
+
+        {showCloneForm && (
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 18 }}>
+            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginBottom: 10 }}>
+              Scegli un cliente da cui copiare la scheda come punto di partenza.
+            </p>
+            {cloneError && <p style={{ color: C.accent, fontSize: 13, ...fontBody, marginBottom: 8 }}>{cloneError}</p>}
+            {cloneBusy ? (
+              <p style={{ ...fontBody, color: C.textDim, fontSize: 13 }}>Copia in corso...</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {siblingClients.map((c) => (
+                  <button key={c.id} onClick={() => cloneFromClient(c)} style={{ ...secondaryBtn, justifyContent: "flex-start" }}>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {showAiForm && (
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 18 }}>
+            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginBottom: 10 }}>
+              L'AI crea una bozza: rivedila e modificala prima di salvare.
+            </p>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>OBIETTIVO</label>
+              <textarea
+                value={aiForm.goal}
+                onChange={(e) => setAiForm({ ...aiForm, goal: e.target.value })}
+                placeholder="Es. ipertrofia, focus su gambe e glutei, ginocchio delicato"
+                rows={2}
+                style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 13, outline: "none", resize: "vertical" }}
+              />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <Field label="Giorni a settimana" value={aiForm.daysPerWeek} onChange={(v) => setAiForm({ ...aiForm, daysPerWeek: v })} type="number" />
+              <Field label="Livello" value={aiForm.level} onChange={(v) => setAiForm({ ...aiForm, level: v })} />
+            </div>
+            <Field label="Note (opzionale)" value={aiForm.notes} onChange={(v) => setAiForm({ ...aiForm, notes: v })} />
+            {aiError && <p style={{ color: C.accent, fontSize: 13, ...fontBody, marginBottom: 8 }}>{aiError}</p>}
+            <button onClick={generateWithAi} disabled={aiBusy} style={{ ...primaryBtn, opacity: aiBusy ? 0.7 : 1 }}>
+              {aiBusy ? "Generazione in corso..." : "Genera bozza"}
+            </button>
+          </div>
+        )}
+
         <datalist id="misura-exercise-library">
           {library.map((l) => <option key={l.name} value={l.displayName || l.name} />)}
         </datalist>
@@ -922,12 +1246,22 @@ function ProgramSection({ program, isTrainer, clientId, trainerId, onSave }) {
 
   return (
     <div>
-      {isTrainer && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-          <button onClick={() => setEditing(true)} style={secondaryBtn}>Modifica programma</button>
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        {days.length > 0 && (
+          <button onClick={() => window.print()} style={secondaryBtn} className="no-print">
+            <Printer size={14} /> Esporta PDF
+          </button>
+        )}
+        {isTrainer && (
+          <button onClick={() => setEditing(true)} style={secondaryBtn} className="no-print">Modifica programma</button>
+        )}
+      </div>
+      {days.length > 0 && clientName && (
+        <p className="print-only" style={{ display: "none", ...fontDisplay, fontSize: 22, marginBottom: 16 }}>
+          Programma di {clientName}
+        </p>
       )}
-      {days.length > 0 && <WeekStrip days={days} />}
+      {days.length > 0 && <div className="no-print"><WeekStrip days={days} /></div>}
       {days.length === 0 ? (
         <EmptyState icon={<Dumbbell size={26} color={C.textDim} />} text={isTrainer ? "Nessun programma caricato ancora." : "Il trainer non ha ancora caricato un programma."} />
       ) : (
@@ -968,7 +1302,7 @@ function ProgramSection({ program, isTrainer, clientId, trainerId, onSave }) {
                         <p style={{ ...fontMono, fontSize: 12, color: C.textDim }}>{ex.reps || "–"} rip.</p>
                         {ex.note && <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginTop: 2 }}>{ex.note}</p>}
                       </div>
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <div className="no-print" style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                         {ex.videoUrl ? (
                           <button onClick={() => setVideoModal(ex.videoUrl)} style={{ ...secondaryBtn, borderColor: C.accent, color: C.accent }}>
                             <PlayCircle size={16} /> Esecuzione
@@ -1183,15 +1517,11 @@ export default function App() {
   };
 
   const handleAddClient = async (form, cb) => {
-  const result = await createClientRemote(profile.id, form);
-  if (result.error) {
-    cb(result.error);
-    return;
-  }
-  setClients(await fetchClients(profile.id));
-  cb(null);
-};
-
+    const result = await callServerFunction("/api/create-client", form);
+    if (!result.ok) { cb(result.error); return; }
+    setClients(await fetchClients(profile.id));
+    cb(null);
+  };
 
   const handleDeleteClient = async (clientId) => {
     const result = await callServerFunction("/api/delete-client", { clientId });
@@ -1235,6 +1565,7 @@ export default function App() {
         client={client}
         isTrainer={true}
         viewerId={profile.id}
+        siblingClients={clients.filter((c) => c.id !== client.id)}
         onBack={() => setScreen("trainer")}
         onLogout={handleLogout}
       />
