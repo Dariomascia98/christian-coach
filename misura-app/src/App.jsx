@@ -810,22 +810,25 @@ function IntakeSection({ intake, isTrainer, onSave }) {
   if (isTrainer && editing) {
     return (
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
           <Field label="Data di nascita" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} type="date" />
-          <div style={{ marginBottom: 14, textAlign: "left" }}>
+          
+          <div style={{ textAlign: "left" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
             <select
               value={form.sex}
               onChange={(e) => setForm({ ...form, sex: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14, outline: "none" }}
+              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8 }}
             >
               <option value="M">M</option>
               <option value="F">F</option>
             </select>
           </div>
+
           <Field label="Altezza (cm)" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} type="number" />
           <Field label="Peso di partenza (kg)" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} type="number" />
         </div>
+
 
         <div style={{ marginBottom: 14, textAlign: "left" }}>
           <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
