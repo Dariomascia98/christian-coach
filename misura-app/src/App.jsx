@@ -810,7 +810,7 @@ function IntakeSection({ intake, isTrainer, onSave }) {
   if (isTrainer && editing) {
     return (
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
           <Field label="Data di nascita" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} type="date" />
           
           <div style={{ textAlign: "left" }}>
@@ -818,15 +818,35 @@ function IntakeSection({ intake, isTrainer, onSave }) {
             <select
               value={form.sex}
               onChange={(e) => setForm({ ...form, sex: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8 }}
+              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, boxSizing: "border-box" }}
             >
               <option value="M">M</option>
               <option value="F">F</option>
             </select>
           </div>
 
-          <Field label="Altezza (cm)" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} type="number" />
-          <Field label="Peso di partenza (kg)" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} type="number" />
+          <div style={{ textAlign: "left" }}>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>ALTEZZA (CM)</label>
+            <input
+              type="number"
+              placeholder="es. 175"
+              value={form.heightCm || ""}
+              onChange={(e) => setForm({ ...form, heightCm: e.target.value })}
+              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, boxSizing: "border-box" }}
+            />
+          </div>
+
+          <div style={{ textAlign: "left" }}>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>PESO DI PARTENZA (KG)</label>
+            <input
+              type="number"
+              step="0.1"
+              placeholder="es. 70.5"
+              value={form.startingWeight || ""}
+              onChange={(e) => setForm({ ...form, startingWeight: e.target.value })}
+              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, boxSizing: "border-box" }}
+            />
+          </div>
         </div>
 
 
