@@ -9,29 +9,79 @@ import {
 } from "recharts";
 import { supabase } from "./supabaseClient";
 
-// ---------- Design tokens ----------
+// ---------- Design Tokens & Theme ----------
 const C = {
-  bg: "#16181C",
-  panel: "#1F2227",
-  panelHi: "#262A31",
-  border: "#33373E",
-  text: "#F0EDE6",
-  textDim: "#8B9099",
+  bg: "#121418",
+  panel: "#1A1D24",
+  panelHi: "#242832",
+  border: "#2E333D",
+  text: "#F3F4F6",
+  textDim: "#9CA3AF",
   accent: "#FF5A1F",
-  accentSoft: "#4A2A1C",
-  positive: "#34C793",
-  ruler: "#4A4F58",
+  accentSoft: "rgba(255, 90, 31, 0.15)",
+  positive: "#10B981",
+  ruler: "#374151",
 };
 
-const fontDisplay = { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.03em" };
+const fontDisplay = { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.04em" };
 const fontBody = { fontFamily: "'Inter', sans-serif" };
 const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 
-// ---------- Data layer (Supabase) ----------
+// ---------- Global CSS Injector ----------
+function FontImport() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+      
+      *, *::before, *::after {
+        box-sizing: border-box !important;
+      }
 
-// Supabase Auth requires an email; we derive a stable, fake one from the
-// trainer/client's chosen username so people keep logging in with a plain
-// username instead of an email address.
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: ${C.bg};
+        color: ${C.text};
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      *:focus-visible { 
+        outline: 2px solid ${C.accent}; 
+        outline-offset: 2px; 
+      }
+      
+      input::placeholder, textarea::placeholder { 
+        color: ${C.textDim}; 
+        opacity: 0.6;
+      }
+
+      select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px top 50%;
+        background-size: 10px auto;
+        padding-right: 32px !important;
+      }
+
+      @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        body, #root, #root * {
+          background: #ffffff !important;
+          color: #111111 !important;
+          border-color: #cccccc !important;
+          box-shadow: none !important;
+        }
+        #root { padding: 0 !important; }
+      }
+    `}</style>
+  );
+}
+
+// ---------- Data layer (Supabase) ----------
 function toFakeEmail(username) {
   return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@misura.local`;
 }
@@ -157,15 +207,10 @@ const WEEKDAYS = [
   { code: "DO", label: "Dom" },
 ];
 function todayCode() {
-  const map = ["DO", "LU", "MA", "ME", "GI", "VE", "SA"]; // JS getDay(): 0=Sun..6=Sat
+  const map = ["DO", "LU", "MA", "ME", "GI", "VE", "SA"];
   return map[new Date().getDay()];
 }
 
-// Upgrades older saved programs (flat list of exercises per day) into the
-// block-based format, where a "block" holds 1+ exercises: 1 exercise = a
-// normal single set, 2 = a superset, 3+ = a circuit. Also ensures every day
-// has a `weekdays` array for calendar scheduling. Safe to run on already
-// up-to-date data.
 function migrateProgram(raw) {
   if (!raw) return { days: [], updatedAt: null };
   const days = (raw.days || []).map((day) => {
@@ -235,10 +280,10 @@ function fmtDate(d) {
   }
 }
 
-// ---------- Signature element: tape-measure divider ----------
+// ---------- Reusable UI Components ----------
 function TapeDivider({ label }) {
   return (
-    <div style={{ margin: "28px 0 18px" }}>
+    <div style={{ margin: "24px 0 16px" }}>
       {label && (
         <div style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.15em", marginBottom: 6 }}>
           {label.toUpperCase()}
@@ -246,39 +291,199 @@ function TapeDivider({ label }) {
       )}
       <div
         style={{
-          height: 14,
+          height: 12,
           backgroundImage: `repeating-linear-gradient(90deg, ${C.ruler} 0px, ${C.ruler} 1px, transparent 1px, transparent 8px),
                              repeating-linear-gradient(90deg, ${C.ruler} 0px, ${C.ruler} 1px, transparent 1px, transparent 40px)`,
           backgroundSize: "8px 6px, 40px 12px",
           backgroundPosition: "left top, left bottom",
           backgroundRepeat: "repeat-x",
           borderBottom: `1px solid ${C.border}`,
-          opacity: 0.9,
+          opacity: 0.8,
         }}
       />
     </div>
   );
 }
 
-// ---------- Video modal ----------
+function Field({ label, value, onChange, type = "text", onEnter, placeholder }) {
+  return (
+    <div style={{ marginBottom: 12, width: "100%", textAlign: "left" }}>
+      {label && (
+        <label style={{ ...fontMono, display: "block", fontSize: 11, color: C.textDim, letterSpacing: "0.08em", marginBottom: 4 }}>
+          {label.toUpperCase()}
+        </label>
+      )}
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && onEnter) onEnter(); }}
+        style={inputStyle}
+      />
+    </div>
+  );
+}
+
+function TextArea({ label, value, onChange, placeholder }) {
+  return (
+    <div style={{ marginBottom: 12, width: "100%", textAlign: "left" }}>
+      {label && (
+        <label style={{ ...fontMono, display: "block", fontSize: 11, color: C.textDim, letterSpacing: "0.08em", marginBottom: 4 }}>
+          {label.toUpperCase()}
+        </label>
+      )}
+      <textarea
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        rows={3}
+        style={{ ...inputStyle, resize: "vertical", minHeight: 70 }}
+      />
+    </div>
+  );
+}
+
+function Logo() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
+      <Ruler size={26} color={C.accent} />
+      <h1 style={{ ...fontDisplay, fontSize: 42, color: C.text, margin: 0, lineHeight: 1 }}>MISURA</h1>
+    </div>
+  );
+}
+
+function Header({ title, subtitle, onBack, onLogout }) {
+  return (
+    <div style={{ borderBottom: `1px solid ${C.border}`, padding: "14px 16px", background: C.panel }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {onBack && (
+            <button onClick={onBack} style={iconBtn} aria-label="Torna indietro">
+              <ChevronLeft size={22} />
+            </button>
+          )}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Ruler size={16} color={C.accent} />
+              <span style={{ ...fontDisplay, fontSize: 20, color: C.text, letterSpacing: "0.05em" }}>MISURA</span>
+            </div>
+            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, margin: 0 }}>{subtitle}</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ ...fontBody, fontSize: 13, color: C.text, fontWeight: 500 }}>{title}</span>
+          <button onClick={onLogout} style={iconBtn} aria-label="Esci">
+            <LogOut size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ icon, text }) {
+  return (
+    <div style={{ textAlign: "center", padding: "40px 16px", border: `1px dashed ${C.border}`, borderRadius: 12, margin: "16px 0" }}>
+      <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>{icon}</div>
+      <p style={{ ...fontBody, color: C.textDim, fontSize: 14, maxWidth: 360, margin: "0 auto", lineHeight: 1.4 }}>{text}</p>
+    </div>
+  );
+}
+
+// ---------- Shared Styles ----------
+const inputStyle = {
+  display: "block",
+  width: "100%",
+  padding: "10px 12px",
+  background: C.panelHi,
+  border: `1px solid ${C.border}`,
+  borderRadius: 8,
+  color: C.text,
+  ...fontBody,
+  fontSize: 14,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const wrapStyle = {
+  minHeight: "100vh",
+  background: C.bg,
+  display: "flex",
+  alignItems: "center",
+  justify: "center",
+  padding: 16,
+};
+
+const centerCard = {
+  width: "100%",
+  maxWidth: 400,
+  background: C.panel,
+  border: `1px solid ${C.border}`,
+  borderRadius: 16,
+  padding: "28px 20px",
+  textAlign: "center",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+};
+
+const primaryBtn = {
+  width: "100%",
+  padding: "11px 16px",
+  background: C.accent,
+  color: "#FFFFFF",
+  border: "none",
+  borderRadius: 8,
+  ...fontBody,
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  transition: "opacity 0.2s",
+};
+
+const secondaryBtn = {
+  padding: "8px 14px",
+  background: C.panelHi,
+  color: C.text,
+  border: `1px solid ${C.border}`,
+  borderRadius: 8,
+  ...fontBody,
+  fontSize: 13,
+  fontWeight: 500,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+};
+
+const iconBtn = {
+  background: "none",
+  border: "none",
+  color: C.textDim,
+  cursor: "pointer",
+  padding: 6,
+  borderRadius: 6,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+// ---------- Modals ----------
 function VideoModal({ url, onClose }) {
   const embed = getYouTubeEmbed(url);
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 50,
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-      }}
-    >
-      <div onClick={(e) => e.stopPropagation()} style={{ background: C.panel, borderRadius: 12, padding: 16, maxWidth: 640, width: "100%", border: `1px solid ${C.border}` }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-          <button onClick={onClose} style={{ color: C.textDim, background: "none", border: "none", cursor: "pointer" }}>
-            <X size={20} />
-          </button>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: C.panel, borderRadius: 12, padding: 16, maxWidth: 600, width: "100%", border: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ ...fontDisplay, fontSize: 18, color: C.text }}>VIDEO ESECUZIONE</span>
+          <button onClick={onClose} style={iconBtn}><X size={20} /></button>
         </div>
         {embed ? (
-          <div style={{ position: "relative", paddingTop: "56.25%" }}>
+          <div style={{ position: "relative", paddingTop: "56.25%", width: "100%" }}>
             <iframe
               src={embed}
               title="Esecuzione esercizio"
@@ -291,7 +496,7 @@ function VideoModal({ url, onClose }) {
           <div style={{ textAlign: "center", padding: 24 }}>
             <p style={{ ...fontBody, color: C.text, marginBottom: 12 }}>Video non incorporabile direttamente.</p>
             <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.accent, ...fontBody, textDecoration: "underline" }}>
-              Apri il video in un&apos;altra scheda
+              Apri il video in un'altra scheda
             </a>
           </div>
         )}
@@ -300,7 +505,6 @@ function VideoModal({ url, onClose }) {
   );
 }
 
-// ---------- Load tracker modal: weights/reps used per exercise over time ----------
 function LoadModal({ exerciseName, clientId, onClose }) {
   const key = exKey(exerciseName);
   const [entries, setEntries] = useState([]);
@@ -318,7 +522,7 @@ function LoadModal({ exerciseName, clientId, onClose }) {
   const submit = async () => {
     if (!form.weight) return;
     const newEntry = { id: uid(), date: form.date, weight: parseFloat(form.weight), reps: form.reps, sets: form.sets };
-    const all = await loadLoads(clientId); // fetch fresh to avoid clobbering other exercises
+    const all = await loadLoads(clientId);
     const updatedForThis = [...(all[key] || []), newEntry].sort((a, b) => new Date(a.date) - new Date(b.date));
     const updatedAll = { ...all, [key]: updatedForThis };
     await saveLoads(clientId, updatedAll);
@@ -329,10 +533,10 @@ function LoadModal({ exerciseName, clientId, onClose }) {
   const chartData = entries.map((e) => ({ date: fmtDate(e.date), carico: e.weight }));
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: C.panel, borderRadius: 12, padding: 18, maxWidth: 480, width: "100%", border: `1px solid ${C.border}`, maxHeight: "85vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, margin: 0 }}>{exerciseName}</h3>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: C.panel, borderRadius: 12, padding: 18, maxWidth: 480, width: "100%", border: `1px solid ${C.border}`, maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>{exerciseName}</h3>
           <button onClick={onClose} style={iconBtn}><X size={18} /></button>
         </div>
 
@@ -340,7 +544,7 @@ function LoadModal({ exerciseName, clientId, onClose }) {
           <p style={{ ...fontBody, color: C.textDim, fontSize: 13 }}>Caricamento...</p>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 8, marginBottom: 10 }}>
               <Field label="Data" value={form.date} onChange={(v) => setForm({ ...form, date: v })} type="date" />
               <Field label="Kg" value={form.weight} onChange={(v) => setForm({ ...form, weight: v })} type="number" />
               <Field label="Rip." value={form.reps} onChange={(v) => setForm({ ...form, reps: v })} />
@@ -349,10 +553,10 @@ function LoadModal({ exerciseName, clientId, onClose }) {
             <button onClick={submit} style={{ ...primaryBtn, marginBottom: 18 }}>Registra carico</button>
 
             {entries.length === 0 ? (
-              <p style={{ ...fontBody, color: C.textDim, fontSize: 13 }}>Nessun carico registrato ancora per questo esercizio.</p>
+              <p style={{ ...fontBody, color: C.textDim, fontSize: 13, textAlign: "center" }}>Nessun carico registrato ancora per questo esercizio.</p>
             ) : (
               <>
-                <div style={{ height: 160, marginBottom: 14 }}>
+                <div style={{ height: 160, width: "100%", marginBottom: 16 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                       <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
@@ -365,10 +569,10 @@ function LoadModal({ exerciseName, clientId, onClose }) {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {[...entries].reverse().map((e) => (
-                    <div key={e.id} style={{ display: "flex", justifyContent: "space-between", background: C.panelHi, borderRadius: 8, padding: "8px 10px" }}>
+                    <div key={e.id} style={{ display: "flex", justifyContent: "space-between", background: C.panelHi, borderRadius: 8, padding: "8px 12px" }}>
                       <span style={{ ...fontBody, fontSize: 12, color: C.textDim }}>{fmtDate(e.date)}</span>
-                      <span style={{ ...fontMono, fontSize: 12, color: C.text }}>
-                        {e.weight}kg {e.sets && `· ${e.sets}x`}{e.reps && `${e.reps}`}
+                      <span style={{ ...fontMono, fontSize: 12, color: C.text, fontWeight: 500 }}>
+                        {e.weight} kg {e.sets && `· ${e.sets}x`}{e.reps && `${e.reps}`}
                       </span>
                     </div>
                   ))}
@@ -382,7 +586,7 @@ function LoadModal({ exerciseName, clientId, onClose }) {
   );
 }
 
-// ---------- Welcome / landing screen ----------
+// ---------- Auth / Landing Screens ----------
 function WelcomeScreen({ onGoLogin, onGoSetup }) {
   return (
     <div style={wrapStyle}>
@@ -390,11 +594,11 @@ function WelcomeScreen({ onGoLogin, onGoSetup }) {
       <div style={centerCard}>
         <Logo />
         <TapeDivider label="Benvenuto" />
-        <p style={{ ...fontBody, color: C.textDim, fontSize: 14, marginBottom: 24 }}>
+        <p style={{ ...fontBody, color: C.textDim, fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
           Gestisci i tuoi clienti, i loro programmi e i loro progressi in un unico posto.
         </p>
         <button onClick={onGoLogin} style={primaryBtn}>Accedi</button>
-        <button onClick={onGoSetup} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10 }}>
+        <button onClick={onGoSetup} style={{ ...secondaryBtn, width: "100%", marginTop: 10 }}>
           Crea un account trainer
         </button>
       </div>
@@ -402,7 +606,6 @@ function WelcomeScreen({ onGoLogin, onGoSetup }) {
   );
 }
 
-// ---------- Setup screen (create a trainer account) ----------
 function SetupScreen({ onSubmit, onBack }) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -429,18 +632,18 @@ function SetupScreen({ onSubmit, onBack }) {
       <div style={centerCard}>
         <Logo />
         <TapeDivider label="Nuovo account" />
-        <h2 style={{ ...fontDisplay, fontSize: 26, color: C.text, marginBottom: 4 }}>Crea il tuo account trainer</h2>
-        <p style={{ ...fontBody, color: C.textDim, fontSize: 14, marginBottom: 20 }}>
-          Questo sarà il tuo accesso principale per gestire i clienti.
+        <h2 style={{ ...fontDisplay, fontSize: 24, color: C.text, marginBottom: 4 }}>Crea account Trainer</h2>
+        <p style={{ ...fontBody, color: C.textDim, fontSize: 13, marginBottom: 20 }}>
+          Accesso principale per la gestione dei clienti.
         </p>
         <Field label="Nome e cognome" value={name} onChange={setName} />
         <Field label="Username" value={username} onChange={setUsername} />
         <Field label="Password" value={password} onChange={setPassword} type="password" />
-        {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4 }}>{error}</p>}
+        {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4, marginBottom: 12 }}>{error}</p>}
         <button onClick={submit} disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
           {busy ? "Attendere..." : <>Crea account <Check size={16} /></>}
         </button>
-        <button onClick={onBack} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, border: "none" }}>
+        <button onClick={onBack} style={{ ...secondaryBtn, width: "100%", marginTop: 10, border: "none" }}>
           ← Torna indietro
         </button>
       </div>
@@ -448,7 +651,6 @@ function SetupScreen({ onSubmit, onBack }) {
   );
 }
 
-// ---------- Login screen ----------
 function LoginScreen({ onSubmit, onBack }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -476,11 +678,11 @@ function LoginScreen({ onSubmit, onBack }) {
         <TapeDivider label="Accedi" />
         <Field label="Username" value={username} onChange={setUsername} />
         <Field label="Password" value={password} onChange={setPassword} type="password" onEnter={submit} />
-        {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4 }}>{error}</p>}
+        {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4, marginBottom: 12 }}>{error}</p>}
         <button onClick={submit} disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
-          {busy ? "Verifica in corso..." : "Entra"}
+          {busy ? "Verifica..." : "Entra"}
         </button>
-        <button onClick={onBack} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, border: "none" }}>
+        <button onClick={onBack} style={{ ...secondaryBtn, width: "100%", marginTop: 10, border: "none" }}>
           ← Torna indietro
         </button>
       </div>
@@ -488,70 +690,7 @@ function LoginScreen({ onSubmit, onBack }) {
   );
 }
 
-function Field({ label, value, onChange, type = "text", onEnter }) {
-  return (
-    <div style={{ marginBottom: 14, textAlign: "left" }}>
-      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{label.toUpperCase()}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && onEnter) onEnter(); }}
-        style={{
-          display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
-          background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
-          color: C.text, ...fontBody, fontSize: 14, outline: "none",
-        }}
-      />
-    </div>
-  );
-}
-
-function Logo() {
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 8, justifyContent: "center" }}>
-      <Ruler size={22} color={C.accent} />
-      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0 }}>MISURA</h1>
-    </div>
-  );
-}
-
-function FontImport() {
-  return (
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-      *:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
-      input::placeholder { color: ${C.textDim}; }
-
-      @media print {
-        .no-print { display: none !important; }
-        .print-only { display: block !important; }
-        body, #root, #root * {
-          background: #ffffff !important;
-          color: #111111 !important;
-          border-color: #cccccc !important;
-          box-shadow: none !important;
-        }
-        #root { padding: 0 !important; }
-      }
-    `}</style>
-  );
-}
-
-const wrapStyle = { minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
-const centerCard = { width: "100%", maxWidth: 380, textAlign: "center" };
-const primaryBtn = {
-  width: "100%", marginTop: 8, padding: "12px 16px", background: C.accent, color: "#1A0D06",
-  border: "none", borderRadius: 8, ...fontBody, fontWeight: 700, fontSize: 14, cursor: "pointer",
-  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-};
-const secondaryBtn = {
-  padding: "9px 14px", background: "transparent", color: C.text, border: `1px solid ${C.border}`,
-  borderRadius: 8, ...fontBody, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-};
-const iconBtn = { background: "none", border: "none", color: C.textDim, cursor: "pointer", padding: 6 };
-
-// ---------- Trainer dashboard ----------
+// ---------- Trainer Dashboard ----------
 function TrainerDashboard({ trainer, clients, onSelectClient, onAddClient, onDeleteClient, onLogout }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", username: "", password: "" });
@@ -575,45 +714,48 @@ function TrainerDashboard({ trainer, clients, onSelectClient, onAddClient, onDel
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <FontImport />
-      <Header title={`Ciao, ${trainer.name}`} subtitle="Dashboard trainer" onLogout={onLogout} />
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 20px 60px" }}>
-        <TapeDivider label={`${clients.length} clienti`} />
+      <Header title={`Ciao, ${trainer.name}`} subtitle="Dashboard Trainer" onLogout={onLogout} />
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "16px 16px 60px" }}>
+        <TapeDivider label={`${clients.length} clienti attivi`} />
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-          <button style={primaryBtn2} onClick={() => setShowAdd((s) => !s)}>
+          <button style={{ ...primaryBtn, width: "auto" }} onClick={() => setShowAdd((s) => !s)}>
             <Plus size={16} /> Nuovo cliente
           </button>
         </div>
 
         {showAdd && (
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-            <Field label="Nome cliente" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-            <Field label="Username" value={form.username} onChange={(v) => setForm({ ...form, username: v })} />
-            <Field label="Password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} type="password" />
-            {error && <p style={{ color: C.accent, fontSize: 13, ...fontBody }}>{error}</p>}
-            <button style={primaryBtn} onClick={submit}>Aggiungi cliente</button>
+            <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, marginTop: 0, marginBottom: 12 }}>Aggiungi Cliente</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+              <Field label="Nome cliente" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+              <Field label="Username" value={form.username} onChange={(v) => setForm({ ...form, username: v })} />
+              <Field label="Password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} type="password" />
+            </div>
+            {error && <p style={{ color: C.accent, fontSize: 13, ...fontBody, marginTop: 4 }}>{error}</p>}
+            <button style={{ ...primaryBtn, marginTop: 8 }} onClick={submit}>Aggiungi cliente</button>
           </div>
         )}
 
         {clients.length === 0 ? (
-          <EmptyState icon={<UsersIcon size={28} color={C.textDim} />} text="Nessun cliente ancora. Aggiungine uno per iniziare a monitorare i suoi allenamenti." />
+          <EmptyState icon={<UsersIcon size={32} color={C.textDim} />} text="Nessun cliente inserito. Aggiungi il tuo primo cliente per iniziare." />
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
             {clients.map((c) => (
               <div key={c.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, position: "relative" }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); if (window.confirm(`Eliminare ${c.name}? Questa azione è permanente.`)) onDeleteClient(c.id); }}
-                  style={{ ...iconBtn, position: "absolute", top: 10, right: 10 }}
+                  style={{ ...iconBtn, position: "absolute", top: 12, right: 12 }}
                   aria-label="Elimina cliente"
                 >
                   <Trash2 size={16} />
                 </button>
                 <div onClick={() => onSelectClient(c.id)} style={{ cursor: "pointer" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-                    <span style={{ ...fontDisplay, color: C.accent, fontSize: 18 }}>{c.name.charAt(0).toUpperCase()}</span>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <span style={{ ...fontDisplay, color: C.accent, fontSize: 20 }}>{c.name.charAt(0).toUpperCase()}</span>
                   </div>
-                  <p style={{ ...fontBody, fontWeight: 600, color: C.text, marginBottom: 2 }}>{c.name}</p>
-                  <p style={{ ...fontMono, fontSize: 12, color: C.textDim }}>@{c.username}</p>
+                  <p style={{ ...fontBody, fontWeight: 600, color: C.text, margin: "0 0 2px 0", fontSize: 15 }}>{c.name}</p>
+                  <p style={{ ...fontMono, fontSize: 12, color: C.textDim, margin: 0 }}>@{c.username}</p>
                 </div>
               </div>
             ))}
@@ -624,47 +766,7 @@ function TrainerDashboard({ trainer, clients, onSelectClient, onAddClient, onDel
   );
 }
 
-const primaryBtn2 = { ...primaryBtn, width: "auto", marginTop: 0 };
-
-function Header({ title, subtitle, onBack, onLogout }) {
-  return (
-    <div style={{ borderBottom: `1px solid ${C.border}`, padding: "18px 20px" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {onBack && (
-            <button onClick={onBack} style={iconBtn} aria-label="Torna indietro">
-              <ChevronLeft size={22} />
-            </button>
-          )}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Ruler size={16} color={C.accent} />
-              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>MISURA</span>
-            </div>
-            <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: 0 }}>{subtitle}</p>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ ...fontBody, fontSize: 13, color: C.text }}>{title}</span>
-          <button onClick={onLogout} style={iconBtn} aria-label="Esci">
-            <LogOut size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ icon, text }) {
-  return (
-    <div style={{ textAlign: "center", padding: "50px 20px", border: `1px dashed ${C.border}`, borderRadius: 12 }}>
-      <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>{icon}</div>
-      <p style={{ ...fontBody, color: C.textDim, fontSize: 14, maxWidth: 320, margin: "0 auto" }}>{text}</p>
-    </div>
-  );
-}
-
-// ---------- Client workspace (used by both trainer viewing a client, and the client themself) ----------
+// ---------- Client Workspace ----------
 function ClientWorkspace({ client, isTrainer, viewerId, siblingClients, onBack, onLogout }) {
   const [tab, setTab] = useState("anamnesi");
   const [program, setProgram] = useState(null);
@@ -708,13 +810,13 @@ function ClientWorkspace({ client, isTrainer, viewerId, siblingClients, onBack, 
       <div className="no-print">
         <Header
           title={isTrainer ? client.name : `Ciao, ${client.name}`}
-          subtitle={isTrainer ? "Scheda cliente" : "Il tuo percorso"}
+          subtitle={isTrainer ? "Scheda Cliente" : "Il tuo percorso"}
           onBack={isTrainer ? onBack : undefined}
           onLogout={onLogout}
         />
       </div>
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 20px 60px" }}>
-        <div className="no-print" style={{ display: "flex", gap: 8, marginTop: 20, marginBottom: 6, flexWrap: "wrap" }}>
+      <div style={{ maxWidth: 840, margin: "0 auto", padding: "16px 16px 60px" }}>
+        <div className="no-print" style={{ display: "flex", gap: 8, marginBottom: 12, overflowX: "auto", paddingBottom: 4 }}>
           <TabBtn active={tab === "anamnesi"} onClick={() => setTab("anamnesi")} icon={<ClipboardList size={15} />} label="Anamnesi" />
           <TabBtn active={tab === "programma"} onClick={() => setTab("programma")} icon={<Dumbbell size={15} />} label="Programma" />
           <TabBtn active={tab === "progressi"} onClick={() => setTab("progressi")} icon={<TrendingUp size={15} />} label="Progressi" />
@@ -722,7 +824,7 @@ function ClientWorkspace({ client, isTrainer, viewerId, siblingClients, onBack, 
         <div className="no-print"><TapeDivider /></div>
 
         {loading ? (
-          <p style={{ ...fontBody, color: C.textDim }}>Caricamento...</p>
+          <p style={{ ...fontBody, color: C.textDim, textAlign: "center", padding: "20px 0" }}>Caricamento...</p>
         ) : tab === "anamnesi" ? (
           <IntakeSection intake={intake} isTrainer={isTrainer} onSave={saveIntake} />
         ) : tab === "programma" ? (
@@ -749,8 +851,9 @@ function TabBtn({ active, onClick, icon, label }) {
       onClick={onClick}
       style={{
         display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8,
-        border: `1px solid ${active ? C.accent : C.border}`, background: active ? C.accentSoft : "transparent",
+        border: `1px solid ${active ? C.accent : C.border}`, background: active ? C.accentSoft : C.panel,
         color: active ? C.accent : C.textDim, ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
+        whiteSpace: "nowrap", flexShrink: 0,
       }}
     >
       {icon} {label}
@@ -758,19 +861,18 @@ function TabBtn({ active, onClick, icon, label }) {
   );
 }
 
-// ---------- Intake section (anamnesi) ----------
+// ---------- Intake Section ----------
 const ACTIVITY_LEVELS = [
   { value: "sedentario", label: "Sedentario", mult: 1.2 },
   { value: "leggero", label: "Leggero (1-3 giorni/sett.)", mult: 1.375 },
   { value: "moderato", label: "Moderato (3-5 giorni/sett.)", mult: 1.55 },
   { value: "intenso", label: "Intenso (6-7 giorni/sett.)", mult: 1.725 },
-  { value: "molto_intenso", label: "Molto intenso (atleta/lavoro fisico)", mult: 1.9 },
+  { value: "molto_intenso", label: "Molto intenso (atleta)", mult: 1.9 },
 ];
 
 function calcBmrTdee({ sex, age, heightCm, weightKg, activityLevel }) {
   const a = parseFloat(age), h = parseFloat(heightCm), w = parseFloat(weightKg);
   if (!a || !h || !w) return null;
-  // Mifflin-St Jeor
   const bmr = sex === "F" ? 10 * w + 6.25 * h - 5 * a - 161 : 10 * w + 6.25 * h - 5 * a + 5;
   const level = ACTIVITY_LEVELS.find((l) => l.value === activityLevel) || ACTIVITY_LEVELS[1];
   return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult) };
@@ -810,62 +912,42 @@ function IntakeSection({ intake, isTrainer, onSave }) {
   if (isTrainer && editing) {
     return (
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, marginTop: 0, marginBottom: 14 }}>Dati Anamnesi</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
           <Field label="Data di nascita" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} type="date" />
           
-          <div style={{ textAlign: "left" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
+          <div style={{ marginBottom: 12, textAlign: "left" }}>
+            <label style={{ ...fontMono, display: "block", fontSize: 11, color: C.textDim, letterSpacing: "0.08em", marginBottom: 4 }}>SESSO</label>
             <select
               value={form.sex}
               onChange={(e) => setForm({ ...form, sex: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, boxSizing: "border-box" }}
+              style={inputStyle}
             >
               <option value="M">M</option>
               <option value="F">F</option>
             </select>
           </div>
 
-          <div style={{ textAlign: "left" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>ALTEZZA (CM)</label>
-            <input
-              type="number"
-              placeholder="es. 175"
-              value={form.heightCm || ""}
-              onChange={(e) => setForm({ ...form, heightCm: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, boxSizing: "border-box" }}
-            />
-          </div>
-
-          <div style={{ textAlign: "left" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>PESO DI PARTENZA (KG)</label>
-            <input
-              type="number"
-              step="0.1"
-              placeholder="es. 70.5"
-              value={form.startingWeight || ""}
-              onChange={(e) => setForm({ ...form, startingWeight: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, boxSizing: "border-box" }}
-            />
-          </div>
+          <Field label="Altezza (cm)" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} type="number" placeholder="es. 175" />
+          <Field label="Peso iniziale (kg)" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} type="number" placeholder="es. 70.5" />
         </div>
 
-
-        <div style={{ marginBottom: 14, textAlign: "left" }}>
-          <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
+        <div style={{ marginBottom: 12, textAlign: "left" }}>
+          <label style={{ ...fontMono, display: "block", fontSize: 11, color: C.textDim, letterSpacing: "0.08em", marginBottom: 4 }}>LIVELLO ATTIVITÀ</label>
           <select
             value={form.activityLevel}
             onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
-            style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14, outline: "none" }}
+            style={inputStyle}
           >
             {ACTIVITY_LEVELS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
           </select>
         </div>
 
-        <TextArea label="Obiettivo principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} placeholder="Es. ipertrofia, dimagrimento, forza, riabilitazione..." />
-        <TextArea label="Infortuni / patologie / limitazioni" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} placeholder="Es. ernia L5, spalla operata nel 2023..." />
-        <TextArea label="Note aggiuntive" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+        <TextArea label="Obiettivo principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} placeholder="Es. ipertrofia, dimagrimento, forza..." />
+        <TextArea label="Infortuni / limitazioni" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} placeholder="Es. ernia L5, problemi alle ginocchia..." />
+        <TextArea label="Note generali" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
 
-        <button onClick={save} style={primaryBtn}><Check size={16} /> Salva anamnesi</button>
+        <button onClick={save} style={primaryBtn}><Check size={16} /> Salva Anamnesi</button>
       </div>
     );
   }
@@ -876,10 +958,10 @@ function IntakeSection({ intake, isTrainer, onSave }) {
       <div>
         {isTrainer && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-            <button onClick={() => setEditing(true)} style={secondaryBtn}>Compila anamnesi</button>
+            <button onClick={() => setEditing(true)} style={secondaryBtn}>Compila Anamnesi</button>
           </div>
         )}
-        <EmptyState icon={<ClipboardList size={26} color={C.textDim} />} text={isTrainer ? "Nessuna anamnesi compilata ancora." : "Il trainer non ha ancora compilato la tua anamnesi."} />
+        <EmptyState icon={<ClipboardList size={30} color={C.textDim} />} text={isTrainer ? "Nessuna anamnesi compilata per questo cliente." : "Il tuo trainer non ha ancora registrato i dati di anamnesi."} />
       </div>
     );
   }
@@ -888,71 +970,59 @@ function IntakeSection({ intake, isTrainer, onSave }) {
     <div>
       {isTrainer && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-          <button onClick={() => setEditing(true)} style={secondaryBtn}>Modifica anamnesi</button>
+          <button onClick={() => setEditing(true)} style={secondaryBtn}>Modifica Anamnesi</button>
         </div>
       )}
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginBottom: 12 }}>
           <InfoRow label="Età" value={age ? `${age} anni` : "—"} />
           <InfoRow label="Sesso" value={form.sex} />
           <InfoRow label="Altezza" value={form.heightCm ? `${form.heightCm} cm` : "—"} />
-          <InfoRow label="Peso di partenza" value={form.startingWeight ? `${form.startingWeight} kg` : "—"} />
+          <InfoRow label="Peso Iniziale" value={form.startingWeight ? `${form.startingWeight} kg` : "—"} />
         </div>
         {metabolism && (
-          <div style={{ display: "flex", gap: 20, padding: "10px 0", borderTop: `1px dashed ${C.border}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, paddingTop: 12, borderTop: `1px dashed ${C.border}` }}>
             <div>
-              <p style={{ ...fontMono, fontSize: 10, color: C.textDim }}>METABOLISMO BASALE</p>
-              <p style={{ ...fontDisplay, fontSize: 20, color: C.accent }}>{metabolism.bmr} kcal</p>
+              <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>BMR (METABOLISMO BASALE)</p>
+              <p style={{ ...fontDisplay, fontSize: 22, color: C.accent, margin: "2px 0 0 0" }}>{metabolism.bmr} kcal</p>
             </div>
             <div>
-              <p style={{ ...fontMono, fontSize: 10, color: C.textDim }}>TDEE STIMATO</p>
-              <p style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{metabolism.tdee} kcal</p>
+              <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>TDEE STIMATO</p>
+              <p style={{ ...fontDisplay, fontSize: 22, color: C.positive, margin: "2px 0 0 0" }}>{metabolism.tdee} kcal</p>
             </div>
           </div>
         )}
       </div>
-      {form.goal && <InfoBlock label="Obiettivo" text={form.goal} />}
-      {form.injuries && <InfoBlock label="Infortuni / limitazioni" text={form.injuries} accent />}
+      {form.goal && <InfoBlock label="Obiettivo Principale" text={form.goal} />}
+      {form.injuries && <InfoBlock label="Infortuni e Limitazioni" text={form.injuries} accent />}
       {form.notes && <InfoBlock label="Note" text={form.notes} />}
     </div>
   );
 }
 
-function TextArea({ label, value, onChange, placeholder }) {
-  return (
-    <div style={{ marginBottom: 14, textAlign: "left" }}>
-      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{label.toUpperCase()}</label>
-      <textarea
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        rows={2}
-        style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14, outline: "none", resize: "vertical" }}
-      />
-    </div>
-  );
-}
 function InfoRow({ label, value }) {
   return (
     <div>
-      <p style={{ ...fontMono, fontSize: 10, color: C.textDim }}>{label.toUpperCase()}</p>
-      <p style={{ ...fontBody, fontSize: 14, color: C.text }}>{value}</p>
+      <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>{label.toUpperCase()}</p>
+      <p style={{ ...fontBody, fontSize: 14, color: C.text, fontWeight: 600, margin: "2px 0 0 0" }}>{value}</p>
     </div>
   );
 }
+
 function InfoBlock({ label, text, accent }) {
   return (
-    <div style={{ background: C.panel, border: `1px solid ${accent ? C.accent : C.border}`, borderRadius: 10, padding: 12, marginBottom: 10 }}>
-      <p style={{ ...fontMono, fontSize: 10, color: accent ? C.accent : C.textDim, marginBottom: 4 }}>{label.toUpperCase()}</p>
-      <p style={{ ...fontBody, fontSize: 14, color: C.text, whiteSpace: "pre-wrap" }}>{text}</p>
+    <div style={{ background: C.panel, border: `1px solid ${accent ? C.accent : C.border}`, borderRadius: 10, padding: 14, marginBottom: 10 }}>
+      <p style={{ ...fontMono, fontSize: 10, color: accent ? C.accent : C.textDim, margin: "0 0 4px 0" }}>{label.toUpperCase()}</p>
+      <p style={{ ...fontBody, fontSize: 14, color: C.text, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.4 }}>{text}</p>
     </div>
   );
 }
 
-
+// ---------- Program Section ----------
 function blockLabel(dayIndexIgnored, blockIndex) {
-  return String.fromCharCode(65 + blockIndex); // A, B, C...
+  return String.fromCharCode(65 + blockIndex);
 }
+
 function blockKind(block) {
   if (block.exercises.length <= 1) return "Singolo";
   if (block.exercises.length === 2) return "Superset";
@@ -962,7 +1032,7 @@ function blockKind(block) {
 function WeekStrip({ days }) {
   const today = todayCode();
   return (
-    <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 16 }}>
       {WEEKDAYS.map((wd) => {
         const scheduled = days.some((d) => (d.weekdays || []).includes(wd.code));
         const isToday = wd.code === today;
@@ -970,12 +1040,12 @@ function WeekStrip({ days }) {
           <div
             key={wd.code}
             style={{
-              flex: 1, textAlign: "center", padding: "8px 2px", borderRadius: 8,
+              textAlign: "center", padding: "6px 2px", borderRadius: 6,
               background: scheduled ? C.accentSoft : C.panel,
               border: `1px solid ${isToday ? C.accent : C.border}`,
             }}
           >
-            <div style={{ ...fontMono, fontSize: 10, color: scheduled ? C.accent : C.textDim }}>{wd.label}</div>
+            <div style={{ ...fontMono, fontSize: 11, fontWeight: isToday ? "bold" : "normal", color: scheduled ? C.accent : C.textDim }}>{wd.label}</div>
           </div>
         );
       })}
@@ -1003,8 +1073,6 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
   const newExercise = () => ({ id: uid(), name: "", reps: "", note: "", videoUrl: "" });
   const newBlock = () => ({ id: uid(), rounds: "3", restBetweenExercises: "", restAfterRound: "90s", exercises: [newExercise()] });
 
-  // Rebuilds every id fresh so the copy never shares references with the
-  // source client's program (editing one could never accidentally touch the other).
   const cloneDaysWithFreshIds = (sourceDays) => (sourceDays || []).map((d) => ({
     id: uid(),
     label: d.label || "Giorno",
@@ -1019,7 +1087,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
   }));
 
   const cloneFromClient = async (sourceClient) => {
-    if (days.length > 0 && !window.confirm(`Copiare la scheda di ${sourceClient.name}? Sostituirà i giorni attuali nell'editor (non ancora salvati).`)) return;
+    if (days.length > 0 && !window.confirm(`Copiare la scheda di ${sourceClient.name}? Sostituirà i giorni attuali.`)) return;
     setCloneBusy(true);
     setCloneError("");
     const sourceProgram = await fetchProgram(sourceClient.id);
@@ -1034,7 +1102,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
 
   const generateWithAi = async () => {
     if (!aiForm.goal.trim()) { setAiError("Descrivi l'obiettivo del cliente."); return; }
-    if (days.length > 0 && !window.confirm("Questo sostituirà i giorni attuali nell'editor (non ancora salvati). Continuare?")) return;
+    if (days.length > 0 && !window.confirm("Sostituire la scheda attuale con quella generata?")) return;
     setAiBusy(true);
     setAiError("");
     const result = await callServerFunction("/api/generate-program", aiForm);
@@ -1077,7 +1145,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
         ...d,
         blocks: d.blocks
           .map((b) => b.id === blockId ? { ...b, exercises: b.exercises.filter((ex) => ex.id !== exId) } : b)
-          .filter((b) => b.exercises.length > 0), // drop a block left with no exercises
+          .filter((b) => b.exercises.length > 0),
       }
     : d));
   const updateExerciseField = (dayId, blockId, exId, field, value) => setDays(days.map((d) => d.id === dayId
@@ -1120,7 +1188,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
           {siblingClients && siblingClients.length > 0 && (
             <button onClick={() => setShowCloneForm((s) => !s)} style={secondaryBtn}>
-              <Copy size={14} /> Copia da un cliente
+              <Copy size={14} /> Copia scheda
             </button>
           )}
           <button onClick={() => setShowAiForm((s) => !s)} style={{ ...secondaryBtn, borderColor: C.accent, color: C.accent }}>
@@ -1129,15 +1197,13 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
         </div>
 
         {showCloneForm && (
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 18 }}>
-            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginBottom: 10 }}>
-              Scegli un cliente da cui copiare la scheda come punto di partenza.
-            </p>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginTop: 0, marginBottom: 10 }}>Seleziona il cliente da cui copiare la scheda:</p>
             {cloneError && <p style={{ color: C.accent, fontSize: 13, ...fontBody, marginBottom: 8 }}>{cloneError}</p>}
             {cloneBusy ? (
               <p style={{ ...fontBody, color: C.textDim, fontSize: 13 }}>Copia in corso...</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
                 {siblingClients.map((c) => (
                   <button key={c.id} onClick={() => cloneFromClient(c)} style={{ ...secondaryBtn, justifyContent: "flex-start" }}>
                     {c.name}
@@ -1149,28 +1215,15 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
         )}
 
         {showAiForm && (
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 18 }}>
-            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginBottom: 10 }}>
-              L'AI crea una bozza: rivedila e modificala prima di salvare.
-            </p>
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>OBIETTIVO</label>
-              <textarea
-                value={aiForm.goal}
-                onChange={(e) => setAiForm({ ...aiForm, goal: e.target.value })}
-                placeholder="Es. ipertrofia, focus su gambe e glutei, ginocchio delicato"
-                rows={2}
-                style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 13, outline: "none", resize: "vertical" }}
-              />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <TextArea label="Obiettivo" value={aiForm.goal} onChange={(v) => setAiForm({ ...aiForm, goal: v })} placeholder="Es. ipertrofia, focus su gambe, 45 min a sessione..." />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Field label="Giorni a settimana" value={aiForm.daysPerWeek} onChange={(v) => setAiForm({ ...aiForm, daysPerWeek: v })} type="number" />
               <Field label="Livello" value={aiForm.level} onChange={(v) => setAiForm({ ...aiForm, level: v })} />
             </div>
-            <Field label="Note (opzionale)" value={aiForm.notes} onChange={(v) => setAiForm({ ...aiForm, notes: v })} />
             {aiError && <p style={{ color: C.accent, fontSize: 13, ...fontBody, marginBottom: 8 }}>{aiError}</p>}
-            <button onClick={generateWithAi} disabled={aiBusy} style={{ ...primaryBtn, opacity: aiBusy ? 0.7 : 1 }}>
-              {aiBusy ? "Generazione in corso..." : "Genera bozza"}
+            <button onClick={generateWithAi} disabled={aiBusy} style={{ ...primaryBtn, marginTop: 10, opacity: aiBusy ? 0.7 : 1 }}>
+              {aiBusy ? "Generazione..." : "Genera Bozza Scheda"}
             </button>
           </div>
         )}
@@ -1178,23 +1231,19 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
         <datalist id="misura-exercise-library">
           {library.map((l) => <option key={l.name} value={l.displayName || l.name} />)}
         </datalist>
-        {library.length > 0 && (
-          <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginBottom: 10 }}>
-            Digitando il nome di un esercizio già usato, il link video si compila da solo.
-          </p>
-        )}
+
         {days.map((day) => (
           <div key={day.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
               <input
                 value={day.label}
                 onChange={(e) => updateDayLabel(day.id, e.target.value)}
-                style={{ ...fontDisplay, fontSize: 18, color: C.text, background: "transparent", border: "none", borderBottom: `1px solid ${C.border}`, flex: 1, outline: "none", padding: "4px 0" }}
+                style={{ ...fontDisplay, fontSize: 20, color: C.text, background: "transparent", border: "none", borderBottom: `1px solid ${C.border}`, flex: 1, outline: "none", padding: "2px 0" }}
               />
               <button onClick={() => removeDay(day.id)} style={iconBtn}><Trash2 size={16} /></button>
             </div>
 
-            <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 14, flexWrap: "wrap" }}>
               {WEEKDAYS.map((wd) => {
                 const active = day.weekdays.includes(wd.code);
                 return (
@@ -1202,7 +1251,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
                     key={wd.code}
                     onClick={() => toggleWeekday(day.id, wd.code)}
                     style={{
-                      padding: "5px 10px", borderRadius: 20, border: `1px solid ${active ? C.accent : C.border}`,
+                      padding: "4px 8px", borderRadius: 16, border: `1px solid ${active ? C.accent : C.border}`,
                       background: active ? C.accentSoft : "transparent", color: active ? C.accent : C.textDim,
                       ...fontMono, fontSize: 11, cursor: "pointer",
                     }}
@@ -1214,54 +1263,47 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
             </div>
 
             {day.blocks.map((block, bi) => (
-              <div key={block.id} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, marginBottom: 10 }}>
+              <div key={block.id} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ ...fontMono, fontSize: 12, color: C.accent, letterSpacing: "0.08em" }}>
-                    BLOCCO {blockLabel(0, bi)} · {blockKind(block).toUpperCase()}
+                  <span style={{ ...fontMono, fontSize: 11, color: C.accent, letterSpacing: "0.08em" }}>
+                    BLOCCO {blockLabel(0, bi)} ({blockKind(block).toUpperCase()})
                   </span>
                   <button onClick={() => removeBlock(day.id, block.id)} style={iconBtn}><Trash2 size={14} /></button>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-                  <input placeholder="Giri/serie" value={block.rounds} onChange={(e) => updateBlockField(day.id, block.id, "rounds", e.target.value)} style={miniInput} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, marginBottom: 10 }}>
+                  <Field label="Serie/Giri" value={block.rounds} onChange={(v) => updateBlockField(day.id, block.id, "rounds", v)} placeholder="es. 3-4" />
                   {block.exercises.length > 1 && (
-                    <input placeholder="Rec. tra esercizi" value={block.restBetweenExercises} onChange={(e) => updateBlockField(day.id, block.id, "restBetweenExercises", e.target.value)} style={miniInput} />
+                    <Field label="Rec. tra es." value={block.restBetweenExercises} onChange={(v) => updateBlockField(day.id, block.id, "restBetweenExercises", v)} placeholder="es. 30s" />
                   )}
-                  <input placeholder="Rec. dopo il giro" value={block.restAfterRound} onChange={(e) => updateBlockField(day.id, block.id, "restAfterRound", e.target.value)} style={miniInput} />
+                  <Field label="Rec. fine giro" value={block.restAfterRound} onChange={(v) => updateBlockField(day.id, block.id, "restAfterRound", v)} placeholder="es. 90s" />
                 </div>
 
                 {block.exercises.map((ex, ei) => (
-                  <div key={ex.id} style={{ display: "grid", gridTemplateColumns: "auto 1.4fr 0.6fr 1fr auto", gap: 8, marginBottom: 6, alignItems: "center" }}>
-                    <span style={{ ...fontMono, fontSize: 11, color: C.textDim, width: 22 }}>
-                      {blockLabel(0, bi)}{block.exercises.length > 1 ? ei + 1 : ""}
-                    </span>
-                    <input
-                      placeholder="Esercizio"
-                      value={ex.name}
-                      list="misura-exercise-library"
-                      onChange={(e) => updateExerciseField(day.id, block.id, ex.id, "name", e.target.value)}
-                      style={miniInput}
-                    />
-                    <input placeholder="Rip." value={ex.reps} onChange={(e) => updateExerciseField(day.id, block.id, ex.id, "reps", e.target.value)} style={miniInput} />
-                    <input placeholder="Link video" value={ex.videoUrl} onChange={(e) => updateExerciseField(day.id, block.id, ex.id, "videoUrl", e.target.value)} style={miniInput} />
-                    <button onClick={() => removeExerciseFromBlock(day.id, block.id, ex.id)} style={iconBtn}><X size={14} /></button>
+                  <div key={ex.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, background: C.panel, padding: 10, borderRadius: 8, marginBottom: 8, border: `1px solid ${C.border}` }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+                      <Field label={`Esercizio ${block.exercises.length > 1 ? ei + 1 : ""}`} value={ex.name} onChange={(v) => updateExerciseField(day.id, block.id, ex.id, "name", v)} placeholder="Nome esercizio" />
+                      <Field label="Ripetizioni" value={ex.reps} onChange={(v) => updateExerciseField(day.id, block.id, ex.id, "reps", v)} placeholder="es. 10 / 8-10" />
+                      <Field label="Link Video YouTube" value={ex.videoUrl} onChange={(v) => updateExerciseField(day.id, block.id, ex.id, "videoUrl", v)} placeholder="https://..." />
+                    </div>
+                    <button onClick={() => removeExerciseFromBlock(day.id, block.id, ex.id)} style={{ ...iconBtn, alignSelf: "flex-start", marginTop: 18 }}><X size={16} /></button>
                   </div>
                 ))}
-                <button onClick={() => addExerciseToBlock(day.id, block.id)} style={{ ...secondaryBtn, marginTop: 4, fontSize: 12, padding: "6px 10px" }}>
-                  <Plus size={12} /> Esercizio in superset/circuito
+                <button onClick={() => addExerciseToBlock(day.id, block.id)} style={{ ...secondaryBtn, fontSize: 12, marginTop: 4 }}>
+                  <Plus size={12} /> Aggiungi in Superset/Circuito
                 </button>
               </div>
             ))}
 
-            <button onClick={() => addBlock(day.id)} style={{ ...secondaryBtn, marginTop: 4 }}>
-              <Plus size={14} /> Blocco (esercizio singolo)
+            <button onClick={() => addBlock(day.id)} style={{ ...secondaryBtn, width: "100%", marginTop: 8 }}>
+              <Plus size={14} /> Aggiungi Blocco Singolo
             </button>
           </div>
         ))}
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={addDay} style={secondaryBtn}><Plus size={14} /> Giorno</button>
-          <button onClick={save} style={primaryBtn2}><Check size={16} /> Salva programma</button>
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={addDay} style={{ ...secondaryBtn, flex: 1 }}><Plus size={14} /> Nuovo Giorno</button>
+          <button onClick={save} style={{ ...primaryBtn, flex: 2 }}><Check size={16} /> Salva Programma</button>
         </div>
       </div>
     );
@@ -1276,66 +1318,63 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
           </button>
         )}
         {isTrainer && (
-          <button onClick={() => setEditing(true)} style={secondaryBtn} className="no-print">Modifica programma</button>
+          <button onClick={() => setEditing(true)} style={secondaryBtn} className="no-print">Modifica Scheda</button>
         )}
       </div>
       {days.length > 0 && clientName && (
-        <p className="print-only" style={{ display: "none", ...fontDisplay, fontSize: 22, marginBottom: 16 }}>
-          Programma di {clientName}
+        <p className="print-only" style={{ display: "none", ...fontDisplay, fontSize: 24, marginBottom: 16 }}>
+          Programma di Allenamento - {clientName}
         </p>
       )}
       {days.length > 0 && <div className="no-print"><WeekStrip days={days} /></div>}
       {days.length === 0 ? (
-        <EmptyState icon={<Dumbbell size={26} color={C.textDim} />} text={isTrainer ? "Nessun programma caricato ancora." : "Il trainer non ha ancora caricato un programma."} />
+        <EmptyState icon={<Dumbbell size={30} color={C.textDim} />} text={isTrainer ? "Nessuna scheda creata per questo cliente." : "Il tuo trainer non ha ancora caricato il tuo programma."} />
       ) : (
         days.map((day) => {
           const isToday = (day.weekdays || []).includes(todayCode());
           return (
-            <div key={day.id} style={{ marginBottom: 22 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, margin: 0 }}>{day.label}</h3>
+            <div key={day.id} style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>{day.label}</h3>
                 {isToday && (
-                  <span style={{ ...fontMono, fontSize: 10, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 12, padding: "2px 8px" }}>OGGI</span>
+                  <span style={{ ...fontMono, fontSize: 10, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 10, padding: "2px 6px" }}>OGGI</span>
                 )}
               </div>
               {day.weekdays && day.weekdays.length > 0 && (
-                <p style={{ ...fontMono, fontSize: 11, color: C.textDim, marginBottom: 10 }}>
+                <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: "0 0 10px 0" }}>
                   {day.weekdays.map((c) => WEEKDAYS.find((w) => w.code === c)?.label).join(" · ")}
                 </p>
               )}
               {day.blocks.map((block, bi) => (
-                <div key={block.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ ...fontMono, fontSize: 11, color: C.accent, letterSpacing: "0.08em" }}>
+                <div key={block.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 4 }}>
+                    <span style={{ ...fontMono, fontSize: 11, color: C.accent, letterSpacing: "0.08em", fontWeight: "bold" }}>
                       {blockKind(block).toUpperCase()} {blockLabel(0, bi)}
                     </span>
                     <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>
                       x{block.rounds || "–"} giri
-                      {block.exercises.length > 1 && block.restBetweenExercises && ` · rec. tra es. ${block.restBetweenExercises}`}
+                      {block.restBetweenExercises && ` · rec. es. ${block.restBetweenExercises}`}
                       {block.restAfterRound && ` · rec. giro ${block.restAfterRound}`}
                     </span>
                   </div>
                   {block.exercises.map((ex, ei) => (
-                    <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderTop: ei > 0 ? `1px dashed ${C.border}` : "none" }}>
-                      <div>
-                        <p style={{ ...fontBody, fontWeight: 600, color: C.text, marginBottom: 2 }}>
+                    <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: ei > 0 ? `1px dashed ${C.border}` : "none", flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ flex: "1 1 200px" }}>
+                        <p style={{ ...fontBody, fontWeight: 600, color: C.text, margin: "0 0 2px 0", fontSize: 15 }}>
                           {block.exercises.length > 1 && <span style={{ ...fontMono, color: C.accent, marginRight: 6 }}>{blockLabel(0, bi)}{ei + 1}</span>}
                           {ex.name || "—"}
                         </p>
-                        <p style={{ ...fontMono, fontSize: 12, color: C.textDim }}>{ex.reps || "–"} rip.</p>
-                        {ex.note && <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginTop: 2 }}>{ex.note}</p>}
+                        <p style={{ ...fontMono, fontSize: 12, color: C.textDim, margin: 0 }}>{ex.reps || "–"} rip.</p>
                       </div>
                       <div className="no-print" style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                        {ex.videoUrl ? (
-                          <button onClick={() => setVideoModal(ex.videoUrl)} style={{ ...secondaryBtn, borderColor: C.accent, color: C.accent }}>
-                            <PlayCircle size={16} /> Esecuzione
+                        {ex.videoUrl && (
+                          <button onClick={() => setVideoModal(ex.videoUrl)} style={{ ...secondaryBtn, padding: "6px 10px", borderColor: C.accent, color: C.accent }}>
+                            <PlayCircle size={15} /> Video
                           </button>
-                        ) : (
-                          <span style={{ color: C.textDim, opacity: 0.5, alignSelf: "center" }}><ImageOff size={16} /></span>
                         )}
                         {ex.name && (
-                          <button onClick={() => setLoadModalEx(ex.name)} style={secondaryBtn}>
-                            <TrendingUp size={16} /> Carichi
+                          <button onClick={() => setLoadModalEx(ex.name)} style={{ ...secondaryBtn, padding: "6px 10px" }}>
+                            <TrendingUp size={15} /> Carichi
                           </button>
                         )}
                       </div>
@@ -1353,12 +1392,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
   );
 }
 
-const miniInput = {
-  padding: "8px 10px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6,
-  color: C.text, ...fontBody, fontSize: 13, outline: "none",
-};
-
-// ---------- Progress section ----------
+// ---------- Progress Section ----------
 function ProgressSection({ entries, onAdd }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -1398,12 +1432,13 @@ function ProgressSection({ entries, onAdd }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <button onClick={() => setShowForm((s) => !s)} style={primaryBtn2}><Plus size={16} /> Nuova rilevazione</button>
+        <button onClick={() => setShowForm((s) => !s)} style={{ ...primaryBtn, width: "auto" }}><Plus size={16} /> Nuova rilevazione</button>
       </div>
 
       {showForm && (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, marginTop: 0, marginBottom: 12 }}>Aggiungi Misure</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
             <Field label="Data" value={form.date} onChange={(v) => setForm({ ...form, date: v })} type="date" />
             <Field label="Peso (kg)" value={form.weight} onChange={(v) => setForm({ ...form, weight: v })} type="number" />
             <Field label="Vita (cm)" value={form.vita} onChange={(v) => setForm({ ...form, vita: v })} />
@@ -1411,53 +1446,53 @@ function ProgressSection({ entries, onAdd }) {
             <Field label="Braccio (cm)" value={form.braccio} onChange={(v) => setForm({ ...form, braccio: v })} />
             <Field label="Coscia (cm)" value={form.coscia} onChange={(v) => setForm({ ...form, coscia: v })} />
           </div>
-          <Field label="Nota" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, cursor: "pointer", ...fontBody, fontSize: 13, color: C.textDim }}>
-            <Camera size={16} /> {photoBusy ? "Elaborazione..." : form.photo ? "Foto pronta" : "Aggiungi foto"}
+          <TextArea label="Nota / Sensazioni" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 14, cursor: "pointer", ...fontBody, fontSize: 13, color: C.textDim, background: C.panelHi, padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.border}` }}>
+            <Camera size={16} /> {photoBusy ? "Elaborazione..." : form.photo ? "Foto salvata" : "Carica Foto Progresso"}
             <input type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
           </label>
-          <button onClick={submit} style={primaryBtn}>Salva rilevazione</button>
+          <button onClick={submit} style={primaryBtn}>Salva Rilevazione</button>
         </div>
       )}
 
       {entries.length === 0 ? (
-        <EmptyState icon={<TrendingUp size={26} color={C.textDim} />} text="Ancora nessuna rilevazione. Aggiungi la prima per iniziare a vedere l'andamento." />
+        <EmptyState icon={<TrendingUp size={30} color={C.textDim} />} text="Ancora nessuna rilevazione. Registra il peso per iniziare il tracciamento grafico." />
       ) : (
         <>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 8px 8px", marginBottom: 20, height: 220 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 8px 8px", marginBottom: 20, height: 220, width: "100%" }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 16, left: -10, bottom: 5 }}>
                 <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 11 }} />
-                <YAxis tick={{ fill: C.textDim, fontSize: 11 }} domain={["auto", "auto"]} />
+                <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 10 }} />
+                <YAxis tick={{ fill: C.textDim, fontSize: 10 }} domain={["auto", "auto"]} />
                 <Tooltip contentStyle={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} />
                 <Line type="monotone" dataKey="peso" stroke={C.accent} strokeWidth={2} dot={{ r: 3 }} name="Peso (kg)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[...entries].reverse().map((e) => (
               <div key={e.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
                 {e.photo ? (
-                  <img src={e.photo} alt="Progresso" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}` }} />
+                  <img src={e.photo} alt="Progresso" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}`, flexShrink: 0 }} />
                 ) : (
-                  <div style={{ width: 52, height: 52, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <ImageOff size={18} color={C.textDim} />
+                  <div style={{ width: 56, height: 56, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <ImageOff size={20} color={C.textDim} />
                   </div>
                 )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13 }}>{fmtDate(e.date)}</span>
-                    <span style={{ ...fontMono, color: C.accent, fontSize: 13 }}>{e.weight} kg</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 14 }}>{fmtDate(e.date)}</span>
+                    <span style={{ ...fontMono, color: C.accent, fontSize: 14, fontWeight: "bold" }}>{e.weight} kg</span>
                   </div>
-                  <p style={{ ...fontMono, fontSize: 11, color: C.textDim, marginTop: 2 }}>
+                  <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: "4px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {e.measurements?.vita && `vita ${e.measurements.vita}cm `}
                     {e.measurements?.petto && `· petto ${e.measurements.petto}cm `}
                     {e.measurements?.braccio && `· braccio ${e.measurements.braccio}cm `}
                     {e.measurements?.coscia && `· coscia ${e.measurements.coscia}cm`}
                   </p>
-                  {e.note && <p style={{ ...fontBody, fontSize: 12, color: C.textDim, marginTop: 2 }}>{e.note}</p>}
+                  {e.note && <p style={{ ...fontBody, fontSize: 12, color: C.textDim, margin: "4px 0 0 0" }}>{e.note}</p>}
                 </div>
               </div>
             ))}
@@ -1468,14 +1503,13 @@ function ProgressSection({ entries, onAdd }) {
   );
 }
 
-// ---------- Root App ----------
+// ---------- Main App Root ----------
 export default function App() {
   const [screen, setScreen] = useState("checking");
   const [profile, setProfile] = useState(null);
   const [clients, setClients] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
 
-  // On load, resume an existing session if there is one
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -1506,8 +1540,7 @@ export default function App() {
       return;
     }
     if (!data.session) {
-      // Email confirmation is still required in the Supabase project settings
-      cb("Account creato, ma serve disabilitare la conferma email in Supabase (Authentication → Providers → Email) prima di poter accedere subito.");
+      cb("Account creato. Se richiesta, verifica l'email per accedere.");
       return;
     }
     setProfile({ id: data.user.id, name, username: username.trim(), role: "trainer" });
