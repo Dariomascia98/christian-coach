@@ -83,7 +83,7 @@ function FontImport() {
 
 // ---------- Data layer (Supabase) ----------
 function toFakeEmail(username) {
-  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@misura.local`;
+  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@coach.com`;
 }
 
 function mapAuthError(error) {
