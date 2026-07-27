@@ -30,7 +30,7 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 // ---------- Data layer (Supabase) ----------
 
 function toFakeEmail(username) {
-  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@misura.local`;
+  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@coach.com`;
 }
 
 function mapAuthError(error) {
@@ -509,7 +509,7 @@ function Logo() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
       <Ruler size={24} color={C.accent} />
-      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0, lineHeight: 1 }}>MISURA</h1>
+      <h1 style={{ ...fontDisplay, fontSize: 40, color: C.text, margin: 0, lineHeight: 1 }}>CHRIS_COACH</h1>
     </div>
   );
 }
@@ -637,7 +637,7 @@ function Header({ title, subtitle, onBack, onLogout }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Ruler size={16} color={C.accent} />
-              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>MISURA</span>
+              <span style={{ ...fontDisplay, fontSize: 18, color: C.text, letterSpacing: "0.05em" }}>CHRIS_COACH</span>
             </div>
             <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: 0 }}>{subtitle}</p>
           </div>
