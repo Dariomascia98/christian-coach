@@ -120,9 +120,21 @@ async function saveIntakeRemote(clientId, intake) {
 }
 
 async function getAccessToken() {
-  const { data } = await supabase.auth.getSession();
-  return data?.session?.access_token || null;
+  // Tenta prima di ottenere la sessione attuale
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  // Se non c'è sessione o c'è un errore, tenta il refresh del token
+  if (error || !session) {
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshData?.session) {
+      return null;
+    }
+    return refreshData.session.access_token;
+  }
+  
+  return session.access_token;
 }
+
 
 async function callServerFunction(path, body) {
   const token = await getAccessToken();
