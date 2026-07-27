@@ -29,10 +29,6 @@ const fontMono = { fontFamily: "'JetBrains Mono', monospace" };
 
 // ---------- Data layer (Supabase) ----------
 
-function toFakeEmail(username) {
-  return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@coach.com`;
-}
-
 function mapAuthError(error) {
   if (!error) return null;
   const msg = error.message || String(error);
@@ -472,7 +468,7 @@ function LoginScreen({ onSubmit, onBack }) {
       <div style={centerCard}>
         <Logo />
         <TapeDivider label="Accedi" />
-        <Field label="Username" value={username} onChange={setUsername} />
+        <Field label="Username / Email" value={username} onChange={setUsername} />
         <Field label="Password" value={password} onChange={setPassword} type="password" onEnter={submit} />
         {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4 }}>{error}</p>}
         <button onClick={submit} disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
@@ -586,7 +582,7 @@ function TrainerDashboard({ trainer, clients, onSelectClient, onAddClient, onDel
         {showAdd && (
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
             <Field label="Nome cliente" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-            <Field label="Username" value={form.username} onChange={(v) => setForm({ ...form, username: v })} />
+            <Field label="Username / Email" value={form.username} onChange={(v) => setForm({ ...form, username: v })} />
             <Field label="Password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} type="password" />
             {error && <p style={{ color: C.accent, fontSize: 13, ...fontBody }}>{error}</p>}
             <button style={primaryBtn} onClick={submit}>Aggiungi cliente</button>
@@ -808,237 +804,287 @@ function IntakeSection({ intake, isTrainer, onSave }) {
   const age = calcAge(form.birthDate);
   const metrics = calcBmrTdee({ ...form, age });
 
-  const handleSave = () => {
-    onSave(form);
+  const submit = async () => {
+    await onSave(form);
     setEditing(false);
   };
 
-  return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>Scheda Anamnesi</h3>
-        {isTrainer && !editing && (
-          <button onClick={() => setEditing(true)} style={secondaryBtn}>
-            <Edit2 size={14} /> Modifica
-          </button>
-        )}
-      </div>
-
-      {editing ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Data di nascita" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} type="date" />
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
-            <select
-              value={form.sex}
-              onChange={(e) => setForm({ ...form, sex: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody }}
-            >
-              <option value="M">Maschio</option>
-              <option value="F">Femmina</option>
-            </select>
-          </div>
-          <Field label="Altezza (cm)" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} type="number" />
-          <Field label="Peso Iniziale (kg)" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} type="number" />
-          
-          <div style={{ gridColumn: "span 2", marginBottom: 14 }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
-            <select
-              value={form.activityLevel}
-              onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
-              style={{ display: "block", width: "100%", marginTop: 6, padding: "10px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody }}
-            >
-              {ACTIVITY_LEVELS.map((l) => (
-                <option key={l.value} value={l.value}>{l.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ gridColumn: "span 2" }}>
-            <Field label="Obiettivo principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} />
-            <Field label="Infortuni / Note mediche" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} />
-            <Field label="Note generali" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
-          </div>
-
-          <button onClick={handleSave} style={{ ...primaryBtn, gridColumn: "span 2", marginTop: 12 }}>
-            <Save size={16} /> Salva Anamnesi
-          </button>
-        </div>
-      ) : (
-        <div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
-            <InfoBox label="Età" value={age ? `${age} anni` : "-"} />
-            <InfoBox label="Altezza" value={form.heightCm ? `${form.heightCm} cm` : "-"} />
-            <InfoBox label="Peso iniziale" value={form.startingWeight ? `${form.startingWeight} kg` : "-"} />
-            <InfoBox label="BMR stimato" value={metrics ? `${metrics.bmr} kcal` : "-"} />
-            <InfoBox label="TDEE stimato" value={metrics ? `${metrics.tdee} kcal` : "-"} />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <InfoText label="Obiettivo" text={form.goal} />
-            <InfoText label="Infortuni / Limitazioni" text={form.injuries} />
-            <InfoText label="Note" text={form.notes} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InfoBox({ label, value }) {
-  return (
-    <div style={{ background: C.panelHi, padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.border}` }}>
-      <div style={{ ...fontMono, fontSize: 10, color: C.textDim, letterSpacing: "0.1em" }}>{label.toUpperCase()}</div>
-      <div style={{ ...fontDisplay, fontSize: 18, color: C.text, marginTop: 2 }}>{value}</div>
-    </div>
-  );
-}
-
-function InfoText({ label, text }) {
-  if (!text) return null;
-  return (
-    <div style={{ background: C.panelHi, padding: "12px", borderRadius: 8, border: `1px solid ${C.border}` }}>
-      <div style={{ ...fontMono, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", marginBottom: 4 }}>{label.toUpperCase()}</div>
-      <div style={{ ...fontBody, fontSize: 13, color: C.text }}>{text}</div>
-    </div>
-  );
-}
-
-// ---------- Program section ----------
-function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, siblingClients, onSave }) {
-  const [selectedExForLoad, setSelectedExForLoad] = useState(null);
-  const [selectedExForVideo, setSelectedExForVideo] = useState(null);
-
-  if (!program || !program.days || program.days.length === 0) {
+  if (!editing && (intake.goal || intake.startingWeight || intake.birthDate)) {
     return (
       <div>
-        <EmptyState icon={<Dumbbell size={28} color={C.textDim} />} text="Nessun programma ancora presente." />
         {isTrainer && (
-          <button
-            onClick={() => onSave({ days: [{ id: uid(), label: "Giorno A", weekdays: ["LU"], blocks: [] }] })}
-            style={{ ...primaryBtn, marginTop: 16 }}
-          >
-            Crea primo giorno di allenamento
-          </button>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <button onClick={() => setEditing(true)} style={secondaryBtn}>
+              <Edit2 size={15} /> Modifica Anamnesi
+            </button>
+          </div>
         )}
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16, marginBottom: 16 }}>
+            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>ETÀ</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{age ? `${age} anni` : "-"}</p></div>
+            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>SESSO</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{intake.sex === "F" ? "Femmina" : "Maschio"}</p></div>
+            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>ALTEZZA</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{intake.heightCm ? `${intake.heightCm} cm` : "-"}</p></div>
+            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>PESO INIZIALE</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{intake.startingWeight ? `${intake.startingWeight} kg` : "-"}</p></div>
+          </div>
+
+          {metrics && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>BMR ESTIMATO</p><p style={{ ...fontDisplay, fontSize: 20, color: C.accent }}>{metrics.bmr} kcal</p></div>
+              <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>TDEE ESTIMATO</p><p style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{metrics.tdee} kcal</p></div>
+            </div>
+          )}
+
+          {intake.goal && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>OBIETTIVO</p>
+              <p style={{ ...fontBody, color: C.text }}>{intake.goal}</p>
+            </div>
+          )}
+          {intake.injuries && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>INFORTUNI / LIMITAZIONI</p>
+              <p style={{ ...fontBody, color: C.text }}>{intake.injuries}</p>
+            </div>
+          )}
+          {intake.notes && (
+            <div>
+              <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>NOTE EXTRA</p>
+              <p style={{ ...fontBody, color: C.text }}>{intake.notes}</p>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
+  if (!isTrainer) {
+    return <EmptyState icon={<ClipboardList size={28} color={C.textDim} />} text="Anamnesi non ancora compilata dal tuo trainer." />;
+  }
+
   return (
-    <div>
-      {program.days.map((day, dIdx) => (
-        <div key={day.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h4 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>{day.label}</h4>
-            <div style={{ display: "flex", gap: 4 }}>
-              {WEEKDAYS.map((w) => (
-                <span
-                  key={w.code}
-                  style={{
-                    ...fontMono, fontSize: 10, padding: "2px 6px", borderRadius: 4,
-                    background: (day.weekdays || []).includes(w.code) ? C.accentSoft : C.panelHi,
-                    color: (day.weekdays || []).includes(w.code) ? C.accent : C.textDim,
-                    border: `1px solid ${(day.weekdays || []).includes(w.code) ? C.accent : C.border}`
-                  }}
-                >
-                  {w.label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {(day.blocks || []).map((block, bIdx) => (
-              <div key={block.id} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12 }}>
-                {block.exercises.map((ex, eIdx) => (
-                  <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-                    <div>
-                      <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 14 }}>{ex.name}</span>
-                      {ex.note && <p style={{ ...fontBody, fontSize: 12, color: C.textDim, margin: "2px 0 0" }}>{ex.note}</p>}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ ...fontMono, fontSize: 12, color: C.accent }}>{ex.reps}</span>
-                      {ex.videoUrl && (
-                        <button onClick={() => setSelectedExForVideo(ex.videoUrl)} style={iconBtn}>
-                          <PlayCircle size={16} color={C.accent} />
-                        </button>
-                      )}
-                      <button onClick={() => setSelectedExForLoad(ex.name)} style={iconBtn}>
-                        <TrendingUp size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+      <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, marginBottom: 16 }}>Compila Anamnesi</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
+          <select
+            value={form.sex}
+            onChange={(e) => setForm({ ...form, sex: e.target.value })}
+            style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14 }}
+          >
+            <option value="M">Maschio</option>
+            <option value="F">Femmina</option>
+          </select>
         </div>
-      ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
+        <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
+      </div>
 
-      {selectedExForLoad && (
-        <LoadModal exerciseName={selectedExForLoad} clientId={clientId} onClose={() => setSelectedExForLoad(null)} />
-      )}
-      {selectedExForVideo && (
-        <VideoModal url={selectedExForVideo} onClose={() => setSelectedExForVideo(null)} />
-      )}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO ATTIVITÀ</label>
+        <select
+          value={form.activityLevel}
+          onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+          style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14 }}
+        >
+          {ACTIVITY_LEVELS.map((a) => (
+            <option key={a.value} value={a.value}>{a.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <Field label="Obiettivo Principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} />
+      <Field label="Infortuni / Limitazioni Fisiche" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} />
+      <Field label="Note aggiuntive" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+
+      <button onClick={submit} style={primaryBtn}><Save size={16} /> Salva Anamnesi</button>
     </div>
   );
 }
 
-// ---------- Progress section ----------
-function ProgressSection({ entries, onAdd }) {
-  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), weight: "", note: "", photoUrl: "" });
+// ---------- Main Program Section Component ----------
+function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, siblingClients, onSave }) {
+  const [activeDayIdx, setActiveDayIdx] = useState(0);
+  const [videoModalUrl, setVideoModalUrl] = useState(null);
+  const [loadModalEx, setLoadModalEx] = useState(null);
 
-  const handlePhoto = async (e) => {
+  const days = program?.days || [];
+
+  const handleUpdateDays = (newDays) => {
+    onSave({ ...program, days: newDays });
+  };
+
+  const addDay = () => {
+    const newDay = { id: uid(), label: `Giorno ${days.length + 1}`, weekdays: [], blocks: [] };
+    handleUpdateDays([...days, newDay]);
+    setActiveDayIdx(days.length);
+  };
+
+  const removeDay = (idx) => {
+    const updated = days.filter((_, i) => i !== idx);
+    handleUpdateDays(updated);
+    if (activeDayIdx >= updated.length) setActiveDayIdx(Math.max(0, updated.length - 1));
+  };
+
+  const currentDay = days[activeDayIdx];
+
+  return (
+    <div>
+      {/* Visualizzazione / Gestione Giorni */}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
+        {days.map((d, idx) => (
+          <button
+            key={d.id}
+            onClick={() => setActiveDayIdx(idx)}
+            style={{
+              padding: "8px 14px", borderRadius: 8,
+              border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
+              background: activeDayIdx === idx ? C.accentSoft : C.panel,
+              color: activeDayIdx === idx ? C.accent : C.text,
+              ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap"
+            }}
+          >
+            {d.label}
+          </button>
+        ))}
+        {isTrainer && (
+          <button onClick={addDay} style={{ ...secondaryBtn, whiteSpace: "nowrap" }}>
+            <Plus size={14} /> Giorno
+          </button>
+        )}
+      </div>
+
+      {days.length === 0 ? (
+        <EmptyState icon={<Dumbbell size={28} color={C.textDim} />} text="Nessun giorno di allenamento creato." />
+      ) : currentDay ? (
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: 0 }}>{currentDay.label}</h3>
+            {isTrainer && (
+              <button onClick={() => removeDay(activeDayIdx)} style={{ ...iconBtn, color: C.accent }}>
+                <Trash2 size={18} />
+              </button>
+            )}
+          </div>
+
+          {/* Render Blocchi Esercizio */}
+          {(currentDay.blocks || []).map((block, bIdx) => (
+            <div key={block.id} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ ...fontMono, fontSize: 12, color: C.accent, fontWeight: 600 }}>BLOCCO #{bIdx + 1}</span>
+                <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>Giri/Serie: {block.rounds || "-"}</span>
+              </div>
+              {(block.exercises || []).map((ex) => (
+                <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderTop: `1px dashed ${C.border}` }}>
+                  <div>
+                    <span style={{ ...fontBody, color: C.text, fontWeight: 500 }}>{ex.name}</span>
+                    {ex.reps && <span style={{ ...fontMono, fontSize: 12, color: C.textDim, marginLeft: 8 }}>({ex.reps})</span>}
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {ex.videoUrl && (
+                      <button onClick={() => setVideoModalUrl(ex.videoUrl)} style={iconBtn}>
+                        <PlayCircle size={16} color={C.accent} />
+                      </button>
+                    )}
+                    <button onClick={() => setLoadModalEx(ex.name)} style={iconBtn}>
+                      <TrendingUp size={16} color={C.positive} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {videoModalUrl && <VideoModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
+      {loadModalEx && <LoadModal exerciseName={loadModalEx} clientId={clientId} onClose={() => setLoadModalEx(null)} />}
+    </div>
+  );
+}
+
+// ---------- Progress Section Component ----------
+function ProgressSection({ entries, onAdd }) {
+  const [weight, setWeight] = useState("");
+  const [photo, setPhoto] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+    try {
       const resized = await resizeImage(file);
-      setForm({ ...form, photoUrl: resized });
+      setPhoto(resized);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const submit = () => {
-    if (!form.weight) return;
-    onAdd({ id: uid(), ...form, weight: parseFloat(form.weight) });
-    setForm({ date: new Date().toISOString().slice(0, 10), weight: "", note: "", photoUrl: "" });
+  const submit = async () => {
+    if (!weight && !photo) return;
+    setBusy(true);
+    await onAdd({
+      id: uid(),
+      date: new Date().toISOString().slice(0, 10),
+      weight: weight ? parseFloat(weight) : null,
+      photo,
+    });
+    setWeight("");
+    setPhoto(null);
+    setBusy(false);
   };
+
+  const chartData = entries.filter((e) => e.weight).map((e) => ({ date: fmtDate(e.date), peso: e.weight }));
 
   return (
     <div>
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-        <h4 style={{ ...fontDisplay, fontSize: 20, color: C.text, margin: "0 0 12px" }}>Nuovo Progresso</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Field label="Data" value={form.date} onChange={(v) => setForm({ ...form, date: v })} type="date" />
-          <Field label="Peso attuale (kg)" value={form.weight} onChange={(v) => setForm({ ...form, weight: v })} type="number" />
+        <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, marginBottom: 12 }}>Registra un nuovo progresso</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <Field label="Peso corporeo (kg)" type="number" value={weight} onChange={setWeight} />
+          <div>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>FOTO PROGRESSO</label>
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "block", marginTop: 6, color: C.textDim, fontSize: 12 }} />
+          </div>
         </div>
-        <Field label="Note" value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
-        
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer" }}>
-            <Camera size={16} /> {form.photoUrl ? "Foto caricata!" : "Aggiungi Foto"}
-            <input type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
-          </label>
-        </div>
-
-        <button onClick={submit} style={primaryBtn}>Salva Progresso</button>
+        <button onClick={submit} disabled={busy} style={primaryBtn}>
+          {busy ? "Salvataggio..." : "Salva progresso"}
+        </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {entries.slice().reverse().map((e) => (
-          <div key={e.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", gap: 14, alignItems: "center" }}>
-            {e.photoUrl ? (
-              <img src={e.photoUrl} alt="Foto progresso" style={{ width: 60, height: 60, borderRadius: 8, objectFit: "cover" }} />
+      {chartData.length > 0 && (
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
+          <h4 style={{ ...fontDisplay, fontSize: 18, color: C.text, marginBottom: 12 }}>Andamento Peso</h4>
+          <div style={{ height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 11 }} />
+                <YAxis tick={{ fill: C.textDim, fontSize: 11 }} domain={["auto", "auto"]} />
+                <Tooltip contentStyle={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text }} />
+                <Line type="monotone" dataKey="peso" stroke={C.accent} strokeWidth={2} dot={{ r: 4 }} name="Peso (kg)" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Lista Progressi */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+        {[...entries].reverse().map((e) => (
+          <div key={e.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12 }}>
+            <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{fmtDate(e.date)}</p>
+            {e.weight && <p style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: "4px 0" }}>{e.weight} kg</p>}
+            {e.photo ? (
+              <img src={e.photo} alt="Progresso" style={{ width: "100%", borderRadius: 6, marginTop: 6, objectFit: "cover" }} />
             ) : (
-              <div style={{ width: 60, height: 60, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ImageOff size={20} color={C.textDim} />
+              <div style={{ height: 60, background: C.panelHi, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 6 }}>
+                <ImageOff size={18} color={C.textDim} />
               </div>
             )}
-            <div>
-              <div style={{ ...fontMono, fontSize: 12, color: C.textDim }}>{fmtDate(e.date)}</div>
-              <div style={{ ...fontDisplay, fontSize: 20, color: C.text }}>{e.weight} kg</div>
-              {e.note && <div style={{ ...fontBody, fontSize: 13, color: C.textDim }}>{e.note}</div>}
-            </div>
           </div>
         ))}
       </div>
@@ -1046,75 +1092,97 @@ function ProgressSection({ entries, onAdd }) {
   );
 }
 
-// ---------- App Controller ----------
+// ---------- Main App Root ----------
 export default function App() {
-  const [screen, setScreen] = useState("welcome");
+  const [screen, setScreen] = useState("welcome"); // welcome | setup | login | main
   const [currentUser, setCurrentUser] = useState(null);
   const [clients, setClients] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [loadingSession, setLoadingSession] = useState(true);
 
+  // Auto-restore session
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user.id).then((p) => {
-          if (p) {
-            setCurrentUser(p);
-            setScreen("main");
-          }
-        });
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.user) {
+        const prof = await fetchProfile(data.session.user.id);
+        if (prof) {
+          setCurrentUser(prof);
+          setScreen("main");
+        }
       }
-    });
+      setLoadingSession(false);
+    })();
   }, []);
 
-  useEffect(() => {
-    if (currentUser && currentUser.role === "trainer") {
-      fetchClients(currentUser.id).then(setClients);
+  // Sync clients when user is trainer
+  const refreshClients = useCallback(async () => {
+    if (currentUser?.role === "trainer") {
+      const list = await fetchClients(currentUser.id);
+      setClients(list);
     }
   }, [currentUser]);
 
-  const handleLogin = async ({ username, password }, callback) => {
-    const email = toFakeEmail(username);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      callback(mapAuthError(error));
+  useEffect(() => {
+    refreshClients();
+  }, [refreshClients]);
+
+  const handleSetup = async ({ name, username, password }, callback) => {
+    // Registrazione senza dominio fittizio
+    const { data: authData, error: authErr } = await supabase.auth.signUp({
+      email: username.trim(),
+      password,
+    });
+
+    if (authErr) {
+      callback(mapAuthError(authErr));
       return;
     }
-    const prof = await fetchProfile(data.user.id);
-    if (!prof) {
-      callback("Profilo non trovato.");
+
+    if (!authData?.user) {
+      callback("Errore durante la creazione del profilo.");
       return;
     }
+
+    const { error: profErr } = await supabase.from("profiles").insert({
+      id: authData.user.id,
+      name,
+      username: username.trim(),
+      role: "trainer",
+    });
+
+    if (profErr) {
+      callback("Errore durante il salvataggio del profilo.");
+      return;
+    }
+
+    const prof = await fetchProfile(authData.user.id);
     setCurrentUser(prof);
     setScreen("main");
     callback(null);
   };
 
-  const handleSetup = async ({ name, username, password }, callback) => {
-    const res = await callServerFunction("/api/create-trainer", { name, username, password });
-    if (!res.ok) {
-      callback(res.error);
-      return;
-    }
-    handleLogin({ username, password }, callback);
-  };
+  const handleLogin = async ({ username, password }, callback) => {
+    // Login diretto senza aggiungere @misura.local
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: username.trim(),
+      password,
+    });
 
-  const handleAddClient = async ({ name, username, password }, callback) => {
-    const res = await callServerFunction("/api/create-client", { name, username, password });
-    if (!res.ok) {
-      callback(res.error);
+    if (error) {
+      callback(mapAuthError(error));
       return;
     }
-    const updated = await fetchClients(currentUser.id);
-    setClients(updated);
+
+    const prof = await fetchProfile(data.user.id);
+    if (!prof) {
+      callback("Profilo utente non trovato.");
+      return;
+    }
+
+    setCurrentUser(prof);
+    setScreen("main");
     callback(null);
-  };
-
-  const handleDeleteClient = async (id) => {
-    const res = await callServerFunction("/api/delete-client", { clientId: id });
-    if (res.ok) {
-      setClients(clients.filter((c) => c.id !== id));
-      if (selectedClientId === id) setSelectedClientId(null);
-    }
   };
 
   const handleLogout = async () => {
@@ -1124,50 +1192,82 @@ export default function App() {
     setScreen("welcome");
   };
 
-  if (screen === "welcome") {
-    return <WelcomeScreen onGoLogin={() => setScreen("login")} onGoSetup={() => setScreen("setup")} />;
-  }
-  if (screen === "login") {
-    return <LoginScreen onSubmit={handleLogin} onBack={() => setScreen("welcome")} />;
-  }
-  if (screen === "setup") {
-    return <SetupScreen onSubmit={handleSetup} onBack={() => setScreen("welcome")} />;
+  const handleAddClient = async ({ name, username, password }, callback) => {
+    const res = await callServerFunction("/api/create-client", {
+      name,
+      username: username.trim(),
+      password,
+    });
+
+    if (!res.ok) {
+      callback(res.error);
+      return;
+    }
+
+    await refreshClients();
+    callback(null);
+  };
+
+  const handleDeleteClient = async (clientId) => {
+    const { error } = await supabase.from("profiles").delete().eq("id", clientId);
+    if (!error) {
+      setClients((prev) => prev.filter((c) => c.id !== clientId));
+      if (selectedClientId === clientId) setSelectedClientId(null);
+    }
+  };
+
+  if (loadingSession) {
+    return (
+      <div style={wrapStyle}>
+        <FontImport />
+        <p style={{ ...fontBody, color: C.textDim }}>Caricamento in corso...</p>
+      </div>
+    );
   }
 
-  if (currentUser?.role === "trainer") {
-    const selectedClient = clients.find((c) => c.id === selectedClientId);
-    if (selectedClient) {
+  if (screen === "welcome") return <WelcomeScreen onGoLogin={() => setScreen("login")} onGoSetup={() => setScreen("setup")} />;
+  if (screen === "setup") return <SetupScreen onSubmit={handleSetup} onBack={() => setScreen("welcome")} />;
+  if (screen === "login") return <LoginScreen onSubmit={handleLogin} onBack={() => setScreen("welcome")} />;
+
+  if (screen === "main" && currentUser) {
+    if (currentUser.role === "trainer") {
+      if (selectedClientId) {
+        const activeClient = clients.find((c) => c.id === selectedClientId);
+        if (!activeClient) return null;
+        return (
+          <ClientWorkspace
+            client={activeClient}
+            isTrainer={true}
+            viewerId={currentUser.id}
+            siblingClients={clients}
+            onBack={() => setSelectedClientId(null)}
+            onLogout={handleLogout}
+          />
+        );
+      }
+      return (
+        <TrainerDashboard
+          trainer={currentUser}
+          clients={clients}
+          onSelectClient={setSelectedClientId}
+          onAddClient={handleAddClient}
+          onDeleteClient={handleDeleteClient}
+          onLogout={handleLogout}
+        />
+      );
+    } else {
       return (
         <ClientWorkspace
-          client={selectedClient}
-          isTrainer={true}
+          client={currentUser}
+          isTrainer={false}
           viewerId={currentUser.id}
-          siblingClients={clients}
-          onBack={() => setSelectedClientId(null)}
+          siblingClients={[]}
+          onBack={undefined}
           onLogout={handleLogout}
         />
       );
     }
-    return (
-      <TrainerDashboard
-        trainer={currentUser}
-        clients={clients}
-        onSelectClient={setSelectedClientId}
-        onAddClient={handleAddClient}
-        onDeleteClient={handleDeleteClient}
-        onLogout={handleLogout}
-      />
-    );
   }
 
-  return (
-    <ClientWorkspace
-      client={currentUser}
-      isTrainer={false}
-      viewerId={currentUser.id}
-      siblingClients={[]}
-      onBack={null}
-      onLogout={handleLogout}
-    />
-  );
+  return null;
 }
