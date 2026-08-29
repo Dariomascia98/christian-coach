@@ -10,6 +10,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// Client principale (mantiene loggato il Coach)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: true, autoRefreshToken: true },
+});
+
+// Client temporaneo (usato SOLO per registrare i clienti senza sconnettere il Coach)
+export const supabaseTemp = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
 });
