@@ -7,7 +7,7 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { supabase } from "./supabaseClient";
+import { supabase, supabaseTemp } from "./supabaseClient";
 
 // ---------- Design tokens ----------
 const C = {
@@ -1142,9 +1142,9 @@ export default function App() {
   const handleSetup = async ({ name, username, password }, callback) => {
     // Registrazione senza dominio fittizio
     const { data: authData, error: authErr } = await supabase.auth.signUp({
-      email: username.trim(),
-      password,
-    });
+  email: username.trim(),
+  password,
+});
 
     if (authErr) {
       callback(mapAuthError(authErr));
