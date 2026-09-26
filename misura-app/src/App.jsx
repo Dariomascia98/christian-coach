@@ -1203,21 +1203,38 @@ const { error: profErr } = await supabase.from("profiles").insert({
     setScreen("welcome");
   };
 
-  const handleAddClient = async ({ name, username, password }, callback) => {
-    const res = await callServerFunction("/api/create-client", {
-      name,
+ const handleAddClient = async ({ name, username, password }, callback) => {
+  // 1. Crea l'utente Auth usando l'istanza temporanea (così il Coach non viene disconnesso)
+  const { data: authData, error: authErr } = await supabaseTemp.auth.signUp({
+    email: username.trim(),
+    password: password,
+  });
+
+  if (authErr) {
+    callback(authErr.message);
+    return;
+  }
+
+  // 2. Crea la riga del profilo collegata al nuovo utente
+  if (authData?.user) {
+    const { error: profErr } = await supabase.from("profiles").insert({
+      id: authData.user.id,
+      name: name,
       username: username.trim(),
-      password,
+      role: "client",
+      created_by: trainer?.id || null
     });
 
-    if (!res.ok) {
-      callback(res.error);
+    if (profErr) {
+      callback(profErr.message);
       return;
     }
+  }
 
-    await refreshClients();
-    callback(null);
-  };
+  // 3. Aggiorna la lista dei clienti in dashboard
+  await refreshClients();
+  callback(null);
+};
 
   const handleDeleteClient = async (clientId) => {
     const { error } = await supabase.from("profiles").delete().eq("id", clientId);
