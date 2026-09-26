@@ -142,7 +142,7 @@ async function callServerFunction(path, body) {
   try {
     const res = await fetch(path, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
