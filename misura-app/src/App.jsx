@@ -1139,11 +1139,9 @@ export default function App() {
     refreshClients();
   }, [refreshClients]);
 
-  const handleSetup = async ({ name, username, password }, callback) => {
-    // Registrazione senza dominio fittizio
-    const { data: authData, error: authErr } = await supabase.auth.signUp({
+  const { data, error } = await supabaseTemp.auth.signUp({
   email: username.trim(),
-  password,
+  password: password,
 });
 
     if (authErr) {
