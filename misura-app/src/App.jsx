@@ -5,11 +5,13 @@ import {
   Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp 
 } from 'lucide-react';
 
-// --- Utility e Costanti Globali di Esempio (se non già presenti nel tuo file) ---
+// --- Utility e Costanti Globali ---
 const uid = () => Math.random().toString(36).substring(2, 9);
 const fmtDate = (dateStr) => {
   if (!dateStr) return "";
-  const [year, month, day] = dateStr.split('-');
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
   return `${day}/${month}/${year}`;
 };
 
@@ -60,11 +62,11 @@ const ACTIVITY_LEVELS = [
 function Field({ label, type = "text", value, onChange }) {
   return (
     <div>
-      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{label.toUpperCase()}</label>
+      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{(label || "").toUpperCase()}</label>
       <input
         type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={value || ""}
+        onChange={(e) => onChange && onChange(e.target.value)}
         style={{
           display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
           background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
@@ -75,59 +77,66 @@ function Field({ label, type = "text", value, onChange }) {
   );
 }
 
-function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }) {
+function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel } = {}) {
   if (!birthDate || !heightCm || !startingWeight) return null;
   const age = Math.floor((new Date() - new Date(birthDate)) / 31557600000);
   const h = parseFloat(heightCm), w = parseFloat(startingWeight);
-  if (!age || !h || !w) return null;
+  if (!age || !h || !w || isNaN(age) || isNaN(h) || isNaN(w)) return null;
   const bmr = sex === "F" ? 10 * w + 6.25 * h - 5 * age - 161 : 10 * w + 6.25 * h - 5 * age + 5;
   const level = ACTIVITY_LEVELS.find((l) => l.value === activityLevel) || ACTIVITY_LEVELS[1];
   return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult), age };
 }
 
-// Funzione di supporto per recuperare il programma (se non definita altrove)
 async function fetchProgram(clientId) {
-  const { data, error } = await supabase
-    .from('programs')
-    .select('*')
-    .eq('client_id', clientId)
-    .single();
-  if (error) {
-    console.error("Errore nel recupero del programma:", error);
+  if (!clientId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('programs')
+      .select('*')
+      .eq('client_id', clientId)
+      .single();
+    if (error) {
+      console.error("Errore nel recupero del programma:", error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Eccezione in fetchProgram:", err);
     return null;
   }
-  return data;
 }
 
 // ---------- Intake section ----------
 export function IntakeSection({ intake = {}, isTrainer, onSave }) {
-  const [editing, setEditing] = useState(isTrainer && !intake?.goal);
+  const safeIntake = intake || {};
+  const [editing, setEditing] = useState(isTrainer && !safeIntake.goal);
   const [form, setForm] = useState({
-    birthDate: intake.birthDate || "",
-    sex: intake.sex || "M",
-    heightCm: intake.heightCm || "",
-    startingWeight: intake.startingWeight || "",
-    activityLevel: intake.activityLevel || "moderato",
-    goal: intake.goal || "",
-    injuries: intake.injuries || "",
-    notes: intake.notes || "",
+    birthDate: safeIntake.birthDate || "",
+    sex: safeIntake.sex || "M",
+    heightCm: safeIntake.heightCm || "",
+    startingWeight: safeIntake.startingWeight || "",
+    activityLevel: safeIntake.activityLevel || "moderato",
+    goal: safeIntake.goal || "",
+    injuries: safeIntake.injuries || "",
+    notes: safeIntake.notes || "",
   });
 
   useEffect(() => {
+    const si = intake || {};
     setForm({
-      birthDate: intake.birthDate || "",
-      sex: intake.sex || "M",
-      heightCm: intake.heightCm || "",
-      startingWeight: intake.startingWeight || "",
-      activityLevel: intake.activityLevel || "moderato",
-      goal: intake.goal || "",
-      injuries: intake.injuries || "",
-      notes: intake.notes || "",
+      birthDate: si.birthDate || "",
+      sex: si.sex || "M",
+      heightCm: si.heightCm || "",
+      startingWeight: si.startingWeight || "",
+      activityLevel: si.activityLevel || "moderato",
+      goal: si.goal || "",
+      injuries: si.injuries || "",
+      notes: si.notes || "",
     });
   }, [intake]);
 
   const handleSave = () => {
-    onSave(form);
+    if (onSave) onSave(form);
     setEditing(false);
   };
 
@@ -256,17 +265,20 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
 }
 
 // ---------- Program Section ----------
-export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
+export function ProgramSection({ program = {}, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
+  const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeVideoUrl, setActiveVideoUrl] = useState(null);
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const days = program?.days || [];
+  const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
 
   const handleUpdateProgram = (newDays) => {
-    onSave({ ...program, days: newDays });
+    if (onSave) {
+      onSave({ ...safeProgram, days: newDays });
+    }
   };
 
   const addDay = () => {
@@ -290,6 +302,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   const addBlock = (dayIdx) => {
     const updated = [...days];
+    if (!updated[dayIdx].blocks) updated[dayIdx].blocks = [];
     const newBlock = {
       id: uid(),
       rounds: "3",
@@ -297,18 +310,19 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       restAfterRound: "90''",
       exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }]
     };
-    updated[dayIdx].blocks = [...(updated[dayIdx].blocks || []), newBlock];
+    updated[dayIdx].blocks.push(newBlock);
     handleUpdateProgram(updated);
   };
 
   const deleteBlock = (dayIdx, blockIdx) => {
     const updated = [...days];
-    updated[dayIdx].blocks = updated[dayIdx].blocks.filter((_, i) => i !== blockIdx);
+    updated[dayIdx].blocks = (updated[dayIdx].blocks || []).filter((_, i) => i !== blockIdx);
     handleUpdateProgram(updated);
   };
 
   const addExercise = (dayIdx, blockIdx) => {
     const updated = [...days];
+    if (!updated[dayIdx].blocks[blockIdx].exercises) updated[dayIdx].blocks[blockIdx].exercises = [];
     const newEx = { id: uid(), name: "", reps: "10", note: "", videoUrl: "" };
     updated[dayIdx].blocks[blockIdx].exercises.push(newEx);
     handleUpdateProgram(updated);
@@ -316,7 +330,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   const deleteExercise = (dayIdx, blockIdx, exIdx) => {
     const updated = [...days];
-    updated[dayIdx].blocks[blockIdx].exercises = updated[dayIdx].blocks[blockIdx].exercises.filter((_, i) => i !== exIdx);
+    updated[dayIdx].blocks[blockIdx].exercises = (updated[dayIdx].blocks[blockIdx].exercises || []).filter((_, i) => i !== exIdx);
     handleUpdateProgram(updated);
   };
 
@@ -335,7 +349,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       {/* Control Header */}
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>
-          {isTrainer ? `PROGRAMMA DI ${clientName?.toUpperCase() || ""}` : "IL TUO PROGRAMMA"}
+          {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
         </h3>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => window.print()} style={secondaryBtn} title="Stampa scheda">
@@ -350,7 +364,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       </div>
 
       {/* Copy tool */}
-      {isTrainer && isEditing && siblingClients.length > 0 && (
+      {isTrainer && isEditing && (siblingClients || []).length > 0 && (
         <div className="no-print" style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
           <Copy size={16} color={C.accent} />
           <span style={{ ...fontBody, fontSize: 13, color: C.textDim }}>Copia programma da:</span>
@@ -404,13 +418,18 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           <p style={{ ...fontBody, margin: 0 }}>
             {isTrainer ? "Nessun giorno di allenamento ancora creato. Clicca su Modifica per iniziare." : "Nessun programma ancora assegnato dal tuo trainer."}
           </p>
+          {isTrainer && !isEditing && (
+            <button onClick={() => setIsEditing(true)} style={{ ...primaryBtn, marginTop: 12 }}>
+              <Plus size={16} /> Inizia a Creare Programma
+            </button>
+          )}
         </div>
       ) : currentDay ? (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             {isEditing ? (
               <input
-                value={currentDay.label}
+                value={currentDay.label || ""}
                 onChange={(e) => {
                   const updated = [...days];
                   updated[activeDayIdx].label = e.target.value;
@@ -596,12 +615,33 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
         </div>
       ) : null}
+
+      {/* Modal Video Player */}
+      {activeVideoUrl && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 600, padding: 16, position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ ...fontDisplay, color: C.text }}>Video Dimostrativo</span>
+              <button onClick={() => setActiveVideoUrl(null)} style={iconBtn}><X size={20} color={C.text} /></button>
+            </div>
+            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+              <iframe
+                src={activeVideoUrl.replace("watch?v=", "embed/")}
+                title="Video demo"
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none", borderRadius: 8 }}
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------- Progress Section ----------
 export function ProgressSection({ entries = [], onAdd }) {
+  const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [weight, setWeight] = useState("");
@@ -617,7 +657,6 @@ export function ProgressSection({ entries = [], onAdd }) {
     if (!file) return;
     setPhotoProcessing(true);
     try {
-      // Semplificazione caricamento immagine locale o simulata
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         setPhoto(uploadEvent.target.result);
@@ -642,7 +681,7 @@ export function ProgressSection({ entries = [], onAdd }) {
       notes,
       photo
     };
-    onAdd(newEntry);
+    if (onAdd) onAdd(newEntry);
     setShowAdd(false);
     setWeight("");
     setWaist("");
@@ -651,13 +690,6 @@ export function ProgressSection({ entries = [], onAdd }) {
     setNotes("");
     setPhoto(null);
   };
-
-  const chartData = entries
-    .filter((e) => e.weight)
-    .map((e) => ({
-      date: fmtDate(e.date),
-      peso: e.weight
-    }));
 
   return (
     <div>
@@ -704,15 +736,15 @@ export function ProgressSection({ entries = [], onAdd }) {
       )}
 
       {/* History */}
-      {entries.length === 0 ? (
+      {safeEntries.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <TrendingUp size={28} color={C.textDim} style={{ marginBottom: 8 }} />
           <p style={{ ...fontBody, margin: 0 }}>Nessun dato sul peso o misurazioni inserito finora.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[...entries].reverse().map((entry) => (
-            <div key={entry.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, display: "flex", gap: 14, alignItems: "center" }}>
+          {[...safeEntries].reverse().map((entry) => (
+            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, display: "flex", gap: 14, alignItems: "center" }}>
               {entry.photo ? (
                 <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
               ) : (
