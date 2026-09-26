@@ -1,9 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { 
-  Save, Edit2, Check, Printer, Copy, Plus, Trash2, 
-  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp 
+import {
+  Save, Edit2, Check, Printer, Copy, Plus, Trash2,
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus
 } from 'lucide-react';
+
+/* ============================================================
+   NOTE IMPORTANTE SULLO SCHEMA DATABASE
+   ============================================================
+   Ho ipotizzato questa struttura Supabase, adattala se diversa:
+
+   - tabella "clients": id (uuid), trainer_id (uuid, FK auth.users),
+     auth_user_id (uuid, FK auth.users, nullable finché il cliente
+     non si registra), name (text), intake (jsonb)
+   - tabella "programs": id, client_id (FK clients), days (jsonb)
+   - tabella "progress_entries": id, client_id, date, weight, waist,
+     chest, hips, notes, photo (url o base64)
+   - Il ruolo "trainer" è determinato da un campo "role" nei
+     user_metadata dell'utente Supabase Auth (impostato in fase di
+     creazione account, es. tramite api/create-client.js per il
+     service role, o manualmente dalla dashboard Supabase per te
+     stesso come trainer).
+
+   Se la tua struttura è diversa, dimmi i nomi reali delle tabelle
+   e colonne e adatto le query.
+   ============================================================ */
 
 // --- Utility e Costanti Globali ---
 const uid = () => Math.random().toString(36).substring(2, 9);
@@ -23,7 +44,8 @@ const C = {
   textDim: "#a1a1aa",
   accent: "#6366f1",
   accentSoft: "rgba(99, 102, 241, 0.15)",
-  positive: "#10b981"
+  positive: "#10b981",
+  danger: "#ef4444"
 };
 
 const fontDisplay = { fontFamily: "sans-serif", fontWeight: 700 };
@@ -44,6 +66,12 @@ const secondaryBtn = {
 
 const iconBtn = {
   background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center"
+};
+
+const inputStyle = {
+  display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
+  background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
+  color: C.text, ...fontBody, fontSize: 14, outline: "none", boxSizing: "border-box"
 };
 
 const WEEKDAYS = [
@@ -67,11 +95,7 @@ function Field({ label, type = "text", value, onChange }) {
         type={type}
         value={value || ""}
         onChange={(e) => onChange && onChange(e.target.value)}
-        style={{
-          display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
-          background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
-          color: C.text, ...fontBody, fontSize: 14, outline: "none", boxSizing: "border-box"
-        }}
+        style={inputStyle}
       />
     </div>
   );
@@ -104,6 +128,338 @@ async function fetchProgram(clientId) {
     console.error("Eccezione in fetchProgram:", err);
     return null;
   }
+}
+
+// ---------- Helper di aggiornamento immutabile per il programma ----------
+function updateDays(days, dayIdx, updater) {
+  return days.map((day, i) => (i === dayIdx ? updater(day) : day));
+}
+function updateBlockInDay(day, blockIdx, updater) {
+  return { ...day, blocks: (day.blocks || []).map((block, i) => (i === blockIdx ? updater(block) : block)) };
+}
+function updateExerciseInBlock(block, exIdx, updater) {
+  return { ...block, exercises: (block.exercises || []).map((ex, i) => (i === exIdx ? updater(ex) : ex)) };
+}
+
+// ============================================================
+// SCHERMATA DI LOGIN / REGISTRAZIONE
+// ============================================================
+function AuthScreen({ onLoggedIn }) {
+  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+    if (!email || !password) {
+      setErrorMsg("Inserisci email e password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onLoggedIn(data.session);
+      } else {
+        // Registrazione: usata di norma dal cliente invitato dal trainer,
+        // che imposta la propria password al primo accesso.
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          onLoggedIn(data.session);
+        } else {
+          setErrorMsg("Controlla la tua email per confermare la registrazione.");
+        }
+      }
+    } catch (err) {
+      console.error("Errore di autenticazione:", err);
+      setErrorMsg(err.message || "Errore durante l'autenticazione.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 28, width: "100%", maxWidth: 380 }}>
+        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px" }}>MISURA</h1>
+        <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px" }}>
+          {mode === "login" ? "Accedi al tuo account" : "Crea un nuovo account"}
+        </p>
+
+        <div style={{ marginBottom: 12 }}>
+          <Field label="Email" type="email" value={email} onChange={setEmail} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <Field label="Password" type="password" value={password} onChange={setPassword} />
+        </div>
+
+        {errorMsg && (
+          <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{errorMsg}</p>
+        )}
+
+        <button type="submit" disabled={loading} style={{ ...primaryBtn, width: "100%", justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
+          {loading ? "Attendere..." : mode === "login" ? "Accedi" : "Registrati"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setMode(mode === "login" ? "signup" : "login"); setErrorMsg(""); }}
+          style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, background: "transparent", border: "none" }}
+        >
+          {mode === "login" ? "Non hai un account? Registrati" : "Hai già un account? Accedi"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ============================================================
+// DASHBOARD TRAINER: elenco clienti + creazione nuovo cliente
+// ============================================================
+function TrainerDashboard({ session, onLogout }) {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  const loadClients = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('trainer_id', session.user.id)
+      .order('name', { ascending: true });
+    if (error) {
+      console.error("Errore nel recupero dei clienti:", error);
+    } else {
+      setClients(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadClients(); }, [session]);
+
+  const handleCreateClient = async (e) => {
+    e.preventDefault();
+    setCreateError("");
+    if (!newClientName || !newClientEmail) {
+      setCreateError("Nome ed email sono obbligatori.");
+      return;
+    }
+    setCreating(true);
+    try {
+      // Chiama la funzione serverless (api/create-client.js) che usa la
+      // service_role key lato server per creare l'utente auth + la riga cliente.
+      // Adatta l'URL se il tuo endpoint è diverso.
+      const res = await fetch('/api/create-client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ name: newClientName, email: newClientEmail })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result?.error || "Errore nella creazione del cliente.");
+      setNewClientName("");
+      setNewClientEmail("");
+      setShowNewClient(false);
+      await loadClients();
+    } catch (err) {
+      console.error("Errore creazione cliente:", err);
+      setCreateError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const selectedClient = clients.find((c) => c.id === selectedClientId) || null;
+
+  if (selectedClient) {
+    return (
+      <ClientWorkspace
+        client={selectedClient}
+        isTrainer={true}
+        siblingClients={clients}
+        onBack={() => setSelectedClientId(null)}
+        onClientUpdated={loadClients}
+      />
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, maxWidth: 900, margin: "0 auto 24px" }}>
+        <h1 style={{ ...fontDisplay, fontSize: 26, color: C.text, margin: 0 }}>I TUOI CLIENTI</h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setShowNewClient(!showNewClient)} style={primaryBtn}>
+            <UserPlus size={16} /> Nuovo Cliente
+          </button>
+          <button onClick={onLogout} style={secondaryBtn}>
+            <LogOut size={15} /> Esci
+          </button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        {showNewClient && (
+          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
+            <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: "0 0 14px" }}>Aggiungi Nuovo Cliente</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
+              <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
+            </div>
+            {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{createError}</p>}
+            <button type="submit" disabled={creating} style={{ ...primaryBtn, opacity: creating ? 0.7 : 1 }}>
+              {creating ? "Creazione..." : "Crea Cliente"}
+            </button>
+          </form>
+        )}
+
+        {loading ? (
+          <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento clienti...</p>
+        ) : clients.length === 0 ? (
+          <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+            <p style={{ ...fontBody, margin: 0 }}>Nessun cliente ancora. Aggiungine uno per iniziare.</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+            {clients.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedClientId(c.id)}
+                style={{
+                  ...secondaryBtn, justifyContent: "flex-start", padding: 16, textAlign: "left",
+                  flexDirection: "column", alignItems: "flex-start", gap: 4
+                }}
+              >
+                <span style={{ ...fontDisplay, fontSize: 16, color: C.text }}>{c.name}</span>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>
+                  {c.intake?.goal || "Obiettivo non impostato"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// WORKSPACE CLIENTE: anamnesi + programma + progressi
+// (usato sia dal trainer che vede un suo cliente, sia dal
+// cliente che vede se stesso)
+// ============================================================
+function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated }) {
+  const [tab, setTab] = useState("intake"); // intake | program | progress
+  const [program, setProgram] = useState(null);
+  const [progressEntries, setProgressEntries] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoadingData(true);
+      const [p, { data: entries, error: entriesError }] = await Promise.all([
+        fetchProgram(client.id),
+        supabase.from('progress_entries').select('*').eq('client_id', client.id).order('date', { ascending: true })
+      ]);
+      if (entriesError) console.error("Errore nel recupero dei progressi:", entriesError);
+      if (active) {
+        setProgram(p || { days: [] });
+        setProgressEntries(entries || []);
+        setLoadingData(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [client.id]);
+
+  const handleSaveIntake = async (form) => {
+    const { error } = await supabase.from('clients').update({ intake: form }).eq('id', client.id);
+    if (error) {
+      console.error("Errore nel salvataggio dell'anamnesi:", error);
+      return;
+    }
+    if (onClientUpdated) onClientUpdated();
+  };
+
+  const handleSaveProgram = async (newProgram) => {
+    setProgram(newProgram);
+    const { error } = await supabase
+      .from('programs')
+      .upsert({ client_id: client.id, days: newProgram.days }, { onConflict: 'client_id' });
+    if (error) console.error("Errore nel salvataggio del programma:", error);
+  };
+
+  const handleAddProgressEntry = async (entry) => {
+    const { error } = await supabase.from('progress_entries').insert({ ...entry, client_id: client.id });
+    if (error) {
+      console.error("Errore nel salvataggio della misurazione:", error);
+      return;
+    }
+    setProgressEntries((prev) => [...prev, entry]);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          {isTrainer && (
+            <button onClick={onBack} style={secondaryBtn}>← Torna ai clienti</button>
+          )}
+          <div className="no-print" style={{ display: "flex", gap: 8 }}>
+            {["intake", "program", "progress"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  ...secondaryBtn,
+                  borderColor: tab === t ? C.accent : C.border,
+                  color: tab === t ? C.accent : C.text
+                }}
+              >
+                {t === "intake" ? "Anamnesi" : t === "program" ? "Programma" : "Progressi"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loadingData ? (
+          <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento...</p>
+        ) : (
+          <>
+            {tab === "intake" && (
+              <IntakeSection intake={client.intake} isTrainer={isTrainer} onSave={handleSaveIntake} />
+            )}
+            {tab === "program" && (
+              <ProgramSection
+                program={program}
+                isTrainer={isTrainer}
+                clientId={client.id}
+                clientName={client.name}
+                siblingClients={siblingClients}
+                onSave={handleSaveProgram}
+              />
+            )}
+            {tab === "progress" && (
+              <ProgressSection entries={progressEntries} onAdd={handleAddProgressEntry} />
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ---------- Intake section ----------
@@ -147,13 +503,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>SCHEDA ANAMNESI</h3>
         {isTrainer && (
-          <button
-            onClick={() => {
-              if (editing) handleSave();
-              else setEditing(true);
-            }}
-            style={secondaryBtn}
-          >
+          <button onClick={() => { if (editing) handleSave(); else setEditing(true); }} style={secondaryBtn}>
             {editing ? <><Save size={14} /> Salva</> : <><Edit2 size={14} /> Modifica</>}
           </button>
         )}
@@ -165,15 +515,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
             <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
             <div>
               <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
-              <select
-                value={form.sex}
-                onChange={(e) => setForm({ ...form, sex: e.target.value })}
-                style={{
-                  display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
-                  background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
-                  color: C.text, ...fontBody, fontSize: 14, outline: "none"
-                }}
-              >
+              <select value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })} style={inputStyle}>
                 <option value="M">Uomo (M)</option>
                 <option value="F">Donna (F)</option>
               </select>
@@ -187,18 +529,8 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
 
           <div>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
-            <select
-              value={form.activityLevel}
-              onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
-              style={{
-                display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
-                background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
-                color: C.text, ...fontBody, fontSize: 14, outline: "none"
-              }}
-            >
-              {ACTIVITY_LEVELS.map((a) => (
-                <option key={a.value} value={a.value}>{a.label}</option>
-              ))}
+            <select value={form.activityLevel} onChange={(e) => setForm({ ...form, activityLevel: e.target.value })} style={inputStyle}>
+              {ACTIVITY_LEVELS.map((a) => (<option key={a.value} value={a.value}>{a.label}</option>))}
             </select>
           </div>
 
@@ -265,7 +597,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
 }
 
 // ---------- Program Section ----------
-export function ProgramSection({ program = {}, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
+export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeVideoUrl, setActiveVideoUrl] = useState(null);
@@ -276,18 +608,15 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
   const currentDay = days[activeDayIdx] || null;
 
   const handleUpdateProgram = (newDays) => {
-    if (onSave) {
-      onSave({ ...safeProgram, days: newDays });
-    }
+    if (onSave) onSave({ ...safeProgram, days: newDays });
   };
 
+  const patchDay = (dayIdx, updater) => handleUpdateProgram(updateDays(days, dayIdx, updater));
+  const patchBlock = (dayIdx, blockIdx, updater) => patchDay(dayIdx, (day) => updateBlockInDay(day, blockIdx, updater));
+  const patchExercise = (dayIdx, blockIdx, exIdx, updater) => patchBlock(dayIdx, blockIdx, (block) => updateExerciseInBlock(block, exIdx, updater));
+
   const addDay = () => {
-    const newDay = {
-      id: uid(),
-      label: `GIORNO ${days.length + 1}`,
-      weekdays: [],
-      blocks: []
-    };
+    const newDay = { id: uid(), label: `GIORNO ${days.length + 1}`, weekdays: [], blocks: [] };
     const updated = [...days, newDay];
     handleUpdateProgram(updated);
     setActiveDayIdx(updated.length - 1);
@@ -301,37 +630,21 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
   };
 
   const addBlock = (dayIdx) => {
-    const updated = [...days];
-    if (!updated[dayIdx].blocks) updated[dayIdx].blocks = [];
-    const newBlock = {
-      id: uid(),
-      rounds: "3",
-      restBetweenExercises: "",
-      restAfterRound: "90''",
-      exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }]
-    };
-    updated[dayIdx].blocks.push(newBlock);
-    handleUpdateProgram(updated);
+    const newBlock = { id: uid(), rounds: "3", restBetweenExercises: "", restAfterRound: "90''", exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }] };
+    patchDay(dayIdx, (day) => ({ ...day, blocks: [...(day.blocks || []), newBlock] }));
   };
 
   const deleteBlock = (dayIdx, blockIdx) => {
-    const updated = [...days];
-    updated[dayIdx].blocks = (updated[dayIdx].blocks || []).filter((_, i) => i !== blockIdx);
-    handleUpdateProgram(updated);
+    patchDay(dayIdx, (day) => ({ ...day, blocks: day.blocks.filter((_, i) => i !== blockIdx) }));
   };
 
   const addExercise = (dayIdx, blockIdx) => {
-    const updated = [...days];
-    if (!updated[dayIdx].blocks[blockIdx].exercises) updated[dayIdx].blocks[blockIdx].exercises = [];
     const newEx = { id: uid(), name: "", reps: "10", note: "", videoUrl: "" };
-    updated[dayIdx].blocks[blockIdx].exercises.push(newEx);
-    handleUpdateProgram(updated);
+    patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: [...block.exercises, newEx] }));
   };
 
   const deleteExercise = (dayIdx, blockIdx, exIdx) => {
-    const updated = [...days];
-    updated[dayIdx].blocks[blockIdx].exercises = (updated[dayIdx].blocks[blockIdx].exercises || []).filter((_, i) => i !== exIdx);
-    handleUpdateProgram(updated);
+    patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: block.exercises.filter((_, i) => i !== exIdx) }));
   };
 
   const copyFromClient = async (sourceClientId) => {
@@ -346,7 +659,6 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
 
   return (
     <div>
-      {/* Control Header */}
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>
           {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
@@ -363,25 +675,17 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
         </div>
       </div>
 
-      {/* Copy tool */}
       {isTrainer && isEditing && (siblingClients || []).length > 0 && (
         <div className="no-print" style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
           <Copy size={16} color={C.accent} />
           <span style={{ ...fontBody, fontSize: 13, color: C.textDim }}>Copia programma da:</span>
-          <select
-            onChange={(e) => copyFromClient(e.target.value)}
-            defaultValue=""
-            style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 10px", borderRadius: 6, fontSize: 13 }}
-          >
+          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 10px", borderRadius: 6, fontSize: 13 }}>
             <option value="" disabled>Seleziona cliente...</option>
-            {siblingClients.filter((c) => c.id !== clientId).map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
+            {siblingClients.filter((c) => c.id !== clientId).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
         </div>
       )}
 
-      {/* Day Selector Tabs */}
       {days.length > 0 && (
         <div className="no-print" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
           {days.map((day, idx) => (
@@ -389,16 +693,11 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
               key={day.id || idx}
               onClick={() => setActiveDayIdx(idx)}
               style={{
-                padding: "8px 14px",
-                borderRadius: 8,
+                padding: "8px 14px", borderRadius: 8,
                 background: activeDayIdx === idx ? C.panelHi : C.panel,
                 border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
                 color: activeDayIdx === idx ? C.text : C.textDim,
-                ...fontBody,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                whiteSpace: "nowrap"
+                ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap"
               }}
             >
               {day.label || `Giorno ${idx + 1}`}
@@ -430,17 +729,12 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
             {isEditing ? (
               <input
                 value={currentDay.label || ""}
-                onChange={(e) => {
-                  const updated = [...days];
-                  updated[activeDayIdx].label = e.target.value;
-                  handleUpdateProgram(updated);
-                }}
+                onChange={(e) => patchDay(activeDayIdx, (day) => ({ ...day, label: e.target.value }))}
                 style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "6px 10px", borderRadius: 6, ...fontDisplay, fontSize: 20 }}
               />
             ) : (
               <h2 style={{ ...fontDisplay, fontSize: 24, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
             )}
-
             {isEditing && (
               <button onClick={() => deleteDay(activeDayIdx)} style={iconBtn} title="Elimina Giorno">
                 <Trash2 size={18} color={C.accent} />
@@ -455,12 +749,10 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
                 return (
                   <button
                     key={w.code}
-                    onClick={() => {
-                      const updated = [...days];
-                      const curWd = updated[activeDayIdx].weekdays || [];
-                      updated[activeDayIdx].weekdays = active ? curWd.filter((c) => c !== w.code) : [...curWd, w.code];
-                      handleUpdateProgram(updated);
-                    }}
+                    onClick={() => patchDay(activeDayIdx, (day) => {
+                      const curWd = day.weekdays || [];
+                      return { ...day, weekdays: active ? curWd.filter((c) => c !== w.code) : [...curWd, w.code] };
+                    })}
                     style={{
                       padding: "4px 8px", borderRadius: 6, fontSize: 11, ...fontMono, cursor: "pointer",
                       border: `1px solid ${active ? C.accent : C.border}`,
@@ -475,7 +767,6 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
             </div>
           )}
 
-          {/* Blocks */}
           {(currentDay.blocks || []).map((block, bIdx) => (
             <div key={block.id || bIdx} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
@@ -484,15 +775,7 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>SERIE:</span>
                     {isEditing ? (
-                      <input
-                        value={block.rounds || ""}
-                        onChange={(e) => {
-                          const updated = [...days];
-                          updated[activeDayIdx].blocks[bIdx].rounds = e.target.value;
-                          handleUpdateProgram(updated);
-                        }}
-                        style={{ width: 50, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }}
-                      />
+                      <input value={block.rounds || ""} onChange={(e) => patchBlock(activeDayIdx, bIdx, (b) => ({ ...b, rounds: e.target.value }))} style={{ width: 50, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }} />
                     ) : (
                       <span style={{ ...fontMono, fontSize: 12, color: C.accent, fontWeight: 700 }}>{block.rounds}</span>
                     )}
@@ -500,15 +783,7 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>RECUPERO:</span>
                     {isEditing ? (
-                      <input
-                        value={block.restAfterRound || ""}
-                        onChange={(e) => {
-                          const updated = [...days];
-                          updated[activeDayIdx].blocks[bIdx].restAfterRound = e.target.value;
-                          handleUpdateProgram(updated);
-                        }}
-                        style={{ width: 60, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }}
-                      />
+                      <input value={block.restAfterRound || ""} onChange={(e) => patchBlock(activeDayIdx, bIdx, (b) => ({ ...b, restAfterRound: e.target.value }))} style={{ width: 60, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }} />
                     ) : (
                       <span style={{ ...fontMono, fontSize: 12, color: C.text }}>{block.restAfterRound}</span>
                     )}
@@ -521,58 +796,21 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
                 </div>
               </div>
 
-              {/* Exercises inside block */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
                   <div key={ex.id || exIdx} style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
                     {isEditing ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            placeholder="Nome Esercizio"
-                            value={ex.name || ""}
-                            onChange={(e) => {
-                              const updated = [...days];
-                              updated[activeDayIdx].blocks[bIdx].exercises[exIdx].name = e.target.value;
-                              handleUpdateProgram(updated);
-                            }}
-                            style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }}
-                          />
-                          <input
-                            placeholder="Ripetizioni"
-                            value={ex.reps || ""}
-                            onChange={(e) => {
-                              const updated = [...days];
-                              updated[activeDayIdx].blocks[bIdx].exercises[exIdx].reps = e.target.value;
-                              handleUpdateProgram(updated);
-                            }}
-                            style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }}
-                          />
+                          <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }} />
+                          <input placeholder="Ripetizioni" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }} />
                           <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}>
                             <Trash2 size={16} />
                           </button>
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            placeholder="Link Video YouTube (opzionale)"
-                            value={ex.videoUrl || ""}
-                            onChange={(e) => {
-                              const updated = [...days];
-                              updated[activeDayIdx].blocks[bIdx].exercises[exIdx].videoUrl = e.target.value;
-                              handleUpdateProgram(updated);
-                            }}
-                            style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }}
-                          />
-                          <input
-                            placeholder="Note / Istruzioni"
-                            value={ex.note || ""}
-                            onChange={(e) => {
-                              const updated = [...days];
-                              updated[activeDayIdx].blocks[bIdx].exercises[exIdx].note = e.target.value;
-                              handleUpdateProgram(updated);
-                            }}
-                            style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }}
-                          />
+                          <input placeholder="Link Video YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }} />
+                          <input placeholder="Note / Istruzioni" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }} />
                         </div>
                       </div>
                     ) : (
@@ -616,7 +854,6 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
         </div>
       ) : null}
 
-      {/* Modal Video Player */}
       {activeVideoUrl && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 600, padding: 16, position: "relative" }}>
@@ -632,6 +869,20 @@ export function ProgramSection({ program = {}, isTrainer, clientId, clientName, 
                 allowFullScreen
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeLoadExercise && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 420, padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ ...fontDisplay, color: C.text }}>Carichi — {activeLoadExercise}</span>
+              <button onClick={() => setActiveLoadExercise(null)} style={iconBtn}><X size={20} color={C.text} /></button>
+            </div>
+            <p style={{ ...fontBody, fontSize: 13, color: C.textDim }}>
+              Funzione in arrivo: qui potrai registrare i carichi (kg/ripetizioni) per questo esercizio nel tempo.
+            </p>
           </div>
         </div>
       )}
@@ -670,25 +921,18 @@ export function ProgressSection({ entries = [], onAdd }) {
   };
 
   const submitEntry = () => {
-    if (!weight) return;
+    const parsedWeight = parseFloat(weight);
+    if (!weight || isNaN(parsedWeight)) return;
     const newEntry = {
-      id: uid(),
-      date,
-      weight: parseFloat(weight),
+      id: uid(), date, weight: parsedWeight,
       waist: waist ? parseFloat(waist) : null,
       chest: chest ? parseFloat(chest) : null,
       hips: hips ? parseFloat(hips) : null,
-      notes,
-      photo
+      notes, photo
     };
     if (onAdd) onAdd(newEntry);
     setShowAdd(false);
-    setWeight("");
-    setWaist("");
-    setChest("");
-    setHips("");
-    setNotes("");
-    setPhoto(null);
+    setWeight(""); setWaist(""); setChest(""); setHips(""); setNotes(""); setPhoto(null);
   };
 
   return (
@@ -735,7 +979,6 @@ export function ProgressSection({ entries = [], onAdd }) {
         </div>
       )}
 
-      {/* History */}
       {safeEntries.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <TrendingUp size={28} color={C.textDim} style={{ marginBottom: 8 }} />
@@ -769,5 +1012,95 @@ export function ProgressSection({ entries = [], onAdd }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ============================================================
+// COMPONENTE APP PRINCIPALE (questo mancava: export default!)
+// ============================================================
+export default function App() {
+  const [session, setSession] = useState(undefined); // undefined = ancora in caricamento
+  const [role, setRole] = useState(null); // "trainer" | "client"
+  const [myClientRecord, setMyClientRecord] = useState(null);
+
+  useEffect(() => {
+    // Recupera la sessione corrente all'avvio dell'app
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+    });
+
+    // Ascolta i cambi di stato (login, logout, refresh token)
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => {
+      listener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setRole(null);
+      setMyClientRecord(null);
+      return;
+    }
+    // Determina il ruolo: se l'utente ha una riga in "clients" con
+    // auth_user_id = suo id, è un cliente; altrimenti è il trainer.
+    // Adatta questa logica al tuo schema reale se diverso.
+    (async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .maybeSingle();
+      if (error) {
+        console.error("Errore nel determinare il ruolo utente:", error);
+      }
+      if (data) {
+        setRole("client");
+        setMyClientRecord(data);
+      } else {
+        setRole("trainer");
+      }
+    })();
+  }, [session]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // Stato di caricamento iniziale: mostra qualcosa invece di uno schermo nero
+  if (session === undefined) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ ...fontBody, color: C.textDim }}>Caricamento...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthScreen onLoggedIn={setSession} />;
+  }
+
+  if (role === null) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ ...fontBody, color: C.textDim }}>Caricamento profilo...</p>
+      </div>
+    );
+  }
+
+  if (role === "trainer") {
+    return <TrainerDashboard session={session} onLogout={handleLogout} />;
+  }
+
+  // role === "client"
+  return (
+    <ClientWorkspace
+      client={myClientRecord}
+      isTrainer={false}
+      onBack={() => {}}
+    />
   );
 }
