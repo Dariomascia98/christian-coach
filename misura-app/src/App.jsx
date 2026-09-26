@@ -1,6 +1,54 @@
-// ---------- Intake section ----------
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import { 
+  Save, Edit2, Check, Printer, Copy, Plus, Trash2, 
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp 
+} from 'lucide-react';
+
+// --- Utility e Costanti Globali di Esempio (se non già presenti nel tuo file) ---
+const uid = () => Math.random().toString(36).substring(2, 9);
+const fmtDate = (dateStr) => {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+const C = {
+  panel: "#1e1e24",
+  panelHi: "#2a2a32",
+  border: "#3f3f46",
+  text: "#f4f4f5",
+  textDim: "#a1a1aa",
+  accent: "#6366f1",
+  accentSoft: "rgba(99, 102, 241, 0.15)",
+  positive: "#10b981"
+};
+
+const fontDisplay = { fontFamily: "sans-serif", fontWeight: 700 };
+const fontBody = { fontFamily: "sans-serif" };
+const fontMono = { fontFamily: "monospace" };
+
+const primaryBtn = {
+  background: C.accent, color: "#fff", border: "none", borderRadius: 8,
+  padding: "8px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 6
+};
+
+const secondaryBtn = {
+  background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8,
+  padding: "8px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 6
+};
+
+const iconBtn = {
+  background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center"
+};
+
+const WEEKDAYS = [
+  { code: "1", label: "LUN" }, { code: "2", label: "MAR" }, { code: "3", label: "MER" },
+  { code: "4", label: "GIO" }, { code: "5", label: "VEN" }, { code: "6", label: "SAB" }, { code: "7", label: "DOM" }
+];
+
 const ACTIVITY_LEVELS = [
   { value: "sedentario", label: "Sedentario", mult: 1.2 },
   { value: "leggero", label: "Leggero (1-3 giorni/sett.)", mult: 1.375 },
@@ -8,6 +56,24 @@ const ACTIVITY_LEVELS = [
   { value: "intenso", label: "Intenso (6-7 giorni/sett.)", mult: 1.725 },
   { value: "molto_intenso", label: "Molto intenso (atleta/lavoro fisico)", mult: 1.9 },
 ];
+
+function Field({ label, type = "text", value, onChange }) {
+  return (
+    <div>
+      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{label.toUpperCase()}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
+          background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
+          color: C.text, ...fontBody, fontSize: 14, outline: "none", boxSizing: "border-box"
+        }}
+      />
+    </div>
+  );
+}
 
 function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }) {
   if (!birthDate || !heightCm || !startingWeight) return null;
@@ -19,7 +85,22 @@ function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }
   return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult), age };
 }
 
-function IntakeSection({ intake, isTrainer, onSave }) {
+// Funzione di supporto per recuperare il programma (se non definita altrove)
+async function fetchProgram(clientId) {
+  const { data, error } = await supabase
+    .from('programs')
+    .select('*')
+    .eq('client_id', clientId)
+    .single();
+  if (error) {
+    console.error("Errore nel recupero del programma:", error);
+    return null;
+  }
+  return data;
+}
+
+// ---------- Intake section ----------
+export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   const [editing, setEditing] = useState(isTrainer && !intake?.goal);
   const [form, setForm] = useState({
     birthDate: intake.birthDate || "",
@@ -175,7 +256,7 @@ function IntakeSection({ intake, isTrainer, onSave }) {
 }
 
 // ---------- Program Section ----------
-function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, siblingClients = [], onSave }) {
+export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeVideoUrl, setActiveVideoUrl] = useState(null);
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
@@ -251,11 +332,6 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
 
   return (
     <div>
-      {activeVideoUrl && <VideoModal url={activeVideoUrl} onClose={() => setActiveVideoUrl(null)} />}
-      {activeLoadExercise && (
-        <LoadModal exerciseName={activeLoadExercise} clientId={clientId} onClose={() => setActiveLoadExercise(null)} />
-      )}
-
       {/* Control Header */}
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>
@@ -323,10 +399,12 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
       )}
 
       {days.length === 0 ? (
-        <EmptyState
-          icon={<Dumbbell size={28} color={C.textDim} />}
-          text={isTrainer ? "Nessun giorno di allenamento ancora creato. Clicca su Modifica per iniziare." : "Nessun programma ancora assegnato dal tuo trainer."}
-        />
+        <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <Dumbbell size={28} color={C.textDim} style={{ marginBottom: 8 }} />
+          <p style={{ ...fontBody, margin: 0 }}>
+            {isTrainer ? "Nessun giorno di allenamento ancora creato. Clicca su Modifica per iniziare." : "Nessun programma ancora assegnato dal tuo trainer."}
+          </p>
+        </div>
       ) : currentDay ? (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -523,7 +601,7 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
 }
 
 // ---------- Progress Section ----------
-function ProgressSection({ entries, onAdd }) {
+export function ProgressSection({ entries = [], onAdd }) {
   const [showAdd, setShowAdd] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [weight, setWeight] = useState("");
@@ -539,11 +617,15 @@ function ProgressSection({ entries, onAdd }) {
     if (!file) return;
     setPhotoProcessing(true);
     try {
-      const resized = await resizeImage(file, 600, 0.7);
-      setPhoto(resized);
+      // Semplificazione caricamento immagine locale o simulata
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setPhoto(uploadEvent.target.result);
+        setPhotoProcessing(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
       console.error(err);
-    } finally {
       setPhotoProcessing(false);
     }
   };
@@ -621,27 +703,12 @@ function ProgressSection({ entries, onAdd }) {
         </div>
       )}
 
-      {/* Chart */}
-      {chartData.length > 0 && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-          <h4 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: "0 0 12px" }}>ANDAMENTO PESO (KG)</h4>
-          <div style={{ height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 10 }} />
-                <YAxis tick={{ fill: C.textDim, fontSize: 10 }} domain={["auto", "auto"]} />
-                <Tooltip contentStyle={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} />
-                <Line type="monotone" dataKey="peso" stroke={C.accent} strokeWidth={2} dot={{ r: 4 }} name="Peso (kg)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
       {/* History */}
       {entries.length === 0 ? (
-        <EmptyState icon={<TrendingUp size={28} color={C.textDim} />} text="Nessun dato sul peso o misurazioni inserito finora." />
+        <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <TrendingUp size={28} color={C.textDim} style={{ marginBottom: 8 }} />
+          <p style={{ ...fontBody, margin: 0 }}>Nessun dato sul peso o misurazioni inserito finora.</p>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[...entries].reverse().map((entry) => (
@@ -663,216 +730,12 @@ function ProgressSection({ entries, onAdd }) {
                   {entry.chest && <span>Petto: {entry.chest}cm</span>}
                   {entry.hips && <span>Fianchi: {entry.hips}cm</span>}
                 </div>
-                {entry.notes && <p style={{ ...fontBody, fontSize: 12, color: C.text, margin: "4px 0 0" }}>{entry.notes}</p>}
+                {entry.notes && <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "6px 0 0" }}>{entry.notes}</p>}
               </div>
             </div>
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-// ---------- Main App Component ----------
-export default function App() {
-  const [screen, setScreen] = useState("welcome");
-  const [userProfile, setUserProfile] = useState(null);
-  const [clients, setClients] = useState([]);
-  const [selectedClientId, setSelectedClientId] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const initUser = async (userId) => {
-    setLoading(true);
-    const prof = await fetchProfile(userId);
-    if (prof) {
-      setUserProfile(prof);
-      if (prof.role === "trainer") {
-        const cls = await fetchClients(prof.id);
-        setClients(cls);
-        setScreen("dashboard");
-      } else {
-        setScreen("workspace");
-      }
-    } else {
-      setScreen("welcome");
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        initUser(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        initUser(session.user.id);
-      } else {
-        setUserProfile(null);
-        setScreen("welcome");
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogin = async ({ username, password }, cb) => {
-    const email = username.includes("@") ? username : `${username.toLowerCase()}@chriscoach.app`;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      cb(mapAuthError(error));
-    } else if (data.user) {
-      await initUser(data.user.id);
-      cb(null);
-    }
-  };
-
-  const handleTrainerSetup = async ({ name, username, password }, cb) => {
-    const email = username.includes("@") ? username : `${username.toLowerCase()}@chriscoach.app`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, role: "trainer" } }
-    });
-    if (error) {
-      cb(mapAuthError(error));
-      return;
-    }
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        name,
-        username,
-        role: "trainer"
-      });
-      await initUser(data.user.id);
-      cb(null);
-    }
-  };
-
-  const handleClientRegister = async ({ name, username, password }, cb) => {
-    const email = username.includes("@") ? username : `${username.toLowerCase()}@chriscoach.app`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, role: "client" } }
-    });
-    if (error) {
-      cb(mapAuthError(error));
-      return;
-    }
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        name,
-        username,
-        role: "client"
-      });
-      cb(null);
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUserProfile(null);
-    setSelectedClientId(null);
-    setScreen("welcome");
-  };
-
-  const handleDeleteClient = async (clientId) => {
-    await supabase.from("profiles").delete().eq("id", clientId);
-    if (userProfile) {
-      const cls = await fetchClients(userProfile.id);
-      setClients(cls);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{ ...wrapStyle, flexDirection: "column", gap: 12 }}>
-        <FontImport />
-        <Logo />
-        <p style={{ ...fontBody, color: C.textDim, fontSize: 14 }}>Caricamento in corso...</p>
-      </div>
-    );
-  }
-
-  const selectedClient = clients.find((c) => c.id === selectedClientId);
-
-  return (
-    <>
-      {screen === "welcome" && (
-        <WelcomeScreen
-          onGoLogin={() => setScreen("login")}
-          onGoClientRegister={() => setScreen("client_register")}
-          onGoSetup={() => setScreen("setup")}
-        />
-      )}
-
-      {screen === "login" && (
-        <LoginScreen
-          onSubmit={handleLogin}
-          onBack={() => setScreen("welcome")}
-          onGoRegister={() => setScreen("client_register")}
-        />
-      )}
-
-      {screen === "setup" && (
-        <SetupScreen
-          onSubmit={handleTrainerSetup}
-          onBack={() => setScreen("welcome")}
-        />
-      )}
-
-      {screen === "client_register" && (
-        <ClientRegisterScreen
-          onSubmit={handleClientRegister}
-          onBack={() => setScreen("welcome")}
-        />
-      )}
-
-      {screen === "dashboard" && userProfile?.role === "trainer" && !selectedClientId && (
-        <TrainerDashboard
-          trainer={userProfile}
-          clients={clients}
-          onSelectClient={(id) => {
-            setSelectedClientId(id);
-            setScreen("workspace");
-          }}
-          onDeleteClient={handleDeleteClient}
-          onLogout={handleLogout}
-        />
-      )}
-
-      {screen === "workspace" && userProfile?.role === "trainer" && selectedClient && (
-        <ClientWorkspace
-          client={selectedClient}
-          isTrainer={true}
-          viewerId={userProfile.id}
-          siblingClients={clients}
-          onBack={() => {
-            setSelectedClientId(null);
-            setScreen("dashboard");
-          }}
-          onLogout={handleLogout}
-        />
-      )}
-
-      {screen === "workspace" && userProfile?.role === "client" && (
-        <ClientWorkspace
-          client={userProfile}
-          isTrainer={false}
-          viewerId={userProfile.id}
-          siblingClients={[]}
-          onBack={undefined}
-          onLogout={handleLogout}
-        />
-      )}
-    </>
   );
 }
