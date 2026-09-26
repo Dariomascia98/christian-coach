@@ -2,18 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import {
   Save, Edit2, Check, Printer, Copy, Plus, Trash2,
-  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp
 } from 'lucide-react';
-
-/* ============================================================
-   NOTE IMPORTANTE SULLO SCHEMA DATABASE
-   ============================================================
-   - tabella "clients": id (uuid), trainer_id (uuid, FK auth.users),
-     auth_user_id (uuid, FK auth.users, nullable), name (text), intake (jsonb)
-   - tabella "programs": id, client_id (FK clients), days (jsonb)
-   - tabella "progress_entries": id, client_id, date, weight, waist,
-     chest, hips, notes, photo (url o base64)
-   ============================================================ */
 
 // --- Utility e Costanti Globali ---
 const uid = () => Math.random().toString(36).substring(2, 9);
@@ -100,25 +90,6 @@ function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }
   return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult), age };
 }
 
-async function fetchProgram(clientId) {
-  if (!clientId) return null;
-  try {
-    const { data, error } = await supabase
-      .from('programs')
-      .select('*')
-      .eq('client_id', clientId)
-      .single();
-    if (error) {
-      console.error("Errore nel recupero del programma:", error);
-      return null;
-    }
-    return data;
-  } catch (err) {
-    console.error("Eccezione in fetchProgram:", err);
-    return null;
-  }
-}
-
 // ---------- Helper di aggiornamento immutabile per il programma ----------
 function updateDays(days, dayIdx, updater) {
   return days.map((day, i) => (i === dayIdx ? updater(day) : day));
@@ -131,276 +102,69 @@ function updateExerciseInBlock(block, exIdx, updater) {
 }
 
 // ============================================================
-// SCHERMATA DI LOGIN / REGISTRAZIONE
+// APP PRINCIPALE (Senza schermate di login bloccanti)
 // ============================================================
-function AuthScreen({ onLoggedIn }) {
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    if (!email || !password) {
-      setErrorMsg("Inserisci email e password.");
-      return;
-    }
-    setLoading(true);
-    try {
-      if (mode === "login") {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        onLoggedIn(data.session);
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        if (data.session) {
-          onLoggedIn(data.session);
-        } else {
-          setErrorMsg("Controlla la tua email per confermare la registrazione.");
-        }
-      }
-    } catch (err) {
-      console.error("Errore di autenticazione:", err);
-      setErrorMsg(err.message || "Errore durante l'autenticazione.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 28, width: "100%", maxWidth: 380 }}>
-        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px" }}>MISURA</h1>
-        <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px" }}>
-          {mode === "login" ? "Accedi al tuo account" : "Crea un nuovo account"}
-        </p>
-
-        <div style={{ marginBottom: 12 }}>
-          <Field label="Email" type="email" value={email} onChange={setEmail} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <Field label="Password" type="password" value={password} onChange={setPassword} />
-        </div>
-
-        {errorMsg && (
-          <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{errorMsg}</p>
-        )}
-
-        <button type="submit" disabled={loading} style={{ ...primaryBtn, width: "100%", justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
-          {loading ? "Attendere..." : mode === "login" ? "Accedi" : "Registrati"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => { setMode(mode === "login" ? "signup" : "login"); setErrorMsg(""); }}
-          style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, background: "transparent", border: "none" }}
-        >
-          {mode === "login" ? "Non hai un account? Registrati" : "Hai già un account? Accedi"}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-// ============================================================
-// DASHBOARD TRAINER
-// ============================================================
-function TrainerDashboard({ session, onLogout }) {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedClientId, setSelectedClientId] = useState(null);
-  const [showNewClient, setShowNewClient] = useState(false);
-  const [newClientName, setNewClientName] = useState("");
-  const [newClientEmail, setNewClientEmail] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
-
-  const loadClients = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('trainer_id', session.user.id)
-      .order('name', { ascending: true });
-    if (error) {
-      console.error("Errore nel recupero dei clienti:", error);
-    } else {
-      setClients(data || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { loadClients(); }, [session]);
-
-  const handleCreateClient = async (e) => {
-    e.preventDefault();
-    setCreateError("");
-    if (!newClientName || !newClientEmail) {
-      setCreateError("Nome ed email sono obbligatori.");
-      return;
-    }
-    setCreating(true);
-    try {
-      const res = await fetch('/api/create-client', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ name: newClientName, email: newClientEmail })
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result?.error || "Errore nella creazione del cliente.");
-      setNewClientName("");
-      setNewClientEmail("");
-      setShowNewClient(false);
-      await loadClients();
-    } catch (err) {
-      console.error("Errore creazione cliente:", err);
-      setCreateError(err.message);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const selectedClient = clients.find((c) => c.id === selectedClientId) || null;
-
-  if (selectedClient) {
-    return (
-      <ClientWorkspace
-        client={selectedClient}
-        isTrainer={true}
-        siblingClients={clients}
-        onBack={() => setSelectedClientId(null)}
-        onClientUpdated={loadClients}
-      />
-    );
-  }
-
-  return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, maxWidth: 900, margin: "0 auto 24px" }}>
-        <h1 style={{ ...fontDisplay, fontSize: 26, color: C.text, margin: 0 }}>I TUOI CLIENTI</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowNewClient(!showNewClient)} style={primaryBtn}>
-            <UserPlus size={16} /> Nuovo Cliente
-          </button>
-          <button onClick={onLogout} style={secondaryBtn}>
-            <LogOut size={15} /> Esci
-          </button>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        {showNewClient && (
-          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
-            <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: "0 0 14px" }}>Aggiungi Nuovo Cliente</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-              <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
-              <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
-            </div>
-            {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{createError}</p>}
-            <button type="submit" disabled={creating} style={{ ...primaryBtn, opacity: creating ? 0.7 : 1 }}>
-              {creating ? "Creazione..." : "Crea Cliente"}
-            </button>
-          </form>
-        )}
-
-        {loading ? (
-          <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento clienti...</p>
-        ) : clients.length === 0 ? (
-          <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <p style={{ ...fontBody, margin: 0 }}>Nessun cliente ancora. Aggiungine uno per iniziare.</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-            {clients.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedClientId(c.id)}
-                style={{
-                  ...secondaryBtn, justifyContent: "flex-start", padding: 16, textAlign: "left",
-                  flexDirection: "column", alignItems: "flex-start", gap: 4
-                }}
-              >
-                <span style={{ ...fontDisplay, fontSize: 16, color: C.text }}>{c.name}</span>
-                <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>
-                  {c.intake?.goal || "Obiettivo non impostato"}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// WORKSPACE CLIENTE
-// ============================================================
-function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated }) {
+export default function App() {
   const [tab, setTab] = useState("intake");
-  const [program, setProgram] = useState(null);
-  const [progressEntries, setProgressEntries] = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const [intake, setIntake] = useState({
+    birthDate: "1995-05-15",
+    sex: "M",
+    heightCm: "180",
+    startingWeight: "78",
+    activityLevel: "moderato",
+    goal: "Ipertrofia e ricomposizione corporea",
+    injuries: "Nessuna",
+    notes: "Primo test applicazione"
+  });
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      setLoadingData(true);
-      const [p, { data: entries, error: entriesError }] = await Promise.all([
-        fetchProgram(client.id),
-        supabase.from('progress_entries').select('*').eq('client_id', client.id).order('date', { ascending: true })
-      ]);
-      if (entriesError) console.error("Errore nel recupero dei progressi:", entriesError);
-      if (active) {
-        setProgram(p || { days: [] });
-        setProgressEntries(entries || []);
-        setLoadingData(false);
+  const [program, setProgram] = useState({
+    days: [
+      {
+        id: uid(),
+        label: "GIORNO 1 - PETTO / TRICIPITI",
+        weekdays: ["1"],
+        blocks: [
+          {
+            id: uid(),
+            rounds: "4",
+            restAfterRound: "120''",
+            exercises: [
+              { id: uid(), name: "Panca Piana Bilanciere", reps: "8-10", note: "Controlled eccentric", videoUrl: "" },
+              { id: uid(), name: "Spinte Manubri su Inclinata", reps: "10-12", note: "30° tilt", videoUrl: "" }
+            ]
+          }
+        ]
       }
-    }
-    load();
-    return () => { active = false; };
-  }, [client.id]);
+    ]
+  });
 
-  const handleSaveIntake = async (form) => {
-    const { error } = await supabase.from('clients').update({ intake: form }).eq('id', client.id);
-    if (error) {
-      console.error("Errore nel salvataggio dell'anamnesi:", error);
-      return;
-    }
-    if (onClientUpdated) onClientUpdated();
+  const [entries, setEntries] = useState([
+    { id: uid(), date: "2026-06-01", weight: 78.5, waist: 82, chest: 104, hips: 98, notes: "Inizio percorso", photo: null }
+  ]);
+
+  const handleSaveIntake = (newForm) => {
+    setIntake(newForm);
   };
 
-  const handleSaveProgram = async (newProgram) => {
-    setProgram(newProgram);
-    const { error } = await supabase
-      .from('programs')
-      .upsert({ client_id: client.id, days: newProgram.days }, { onConflict: 'client_id' });
-    if (error) console.error("Errore nel salvataggio del programma:", error);
+  const handleSaveProgram = (newProg) => {
+    setProgram(newProg);
   };
 
-  const handleAddProgressEntry = async (entry) => {
-    const { error } = await supabase.from('progress_entries').insert({ ...entry, client_id: client.id });
-    if (error) {
-      console.error("Errore nel salvataggio della misurazione:", error);
-      return;
-    }
-    setProgressEntries((prev) => [...prev, entry]);
+  const handleAddProgress = (newEntry) => {
+    setEntries((prev) => [...prev, newEntry]);
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24, color: C.text, ...fontBody }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          {isTrainer && (
-            <button onClick={onBack} style={secondaryBtn}>← Torna ai clienti</button>
-          )}
-          <div className="no-print" style={{ display: "flex", gap: 8 }}>
+        
+        {/* Header di navigazione pulito */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: 0 }}>CHRIS COACH</h1>
+            <p style={{ fontSize: 13, color: C.textDim, margin: "2px 0 0" }}>Gestionale Coaching & Atleti</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
             {["intake", "program", "progress"].map((t) => (
               <button
                 key={t}
@@ -408,7 +172,8 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
                 style={{
                   ...secondaryBtn,
                   borderColor: tab === t ? C.accent : C.border,
-                  color: tab === t ? C.accent : C.text
+                  color: tab === t ? C.accent : C.text,
+                  background: tab === t ? C.panelHi : C.panel
                 }}
               >
                 {t === "intake" ? "Anamnesi" : t === "program" ? "Programma" : "Progressi"}
@@ -417,61 +182,37 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
           </div>
         </div>
 
-        {loadingData ? (
-          <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento...</p>
-        ) : (
-          <>
-            {tab === "intake" && (
-              <IntakeSection intake={client.intake} isTrainer={isTrainer} onSave={handleSaveIntake} />
-            )}
-            {tab === "program" && (
-              <ProgramSection
-                program={program}
-                isTrainer={isTrainer}
-                clientId={client.id}
-                clientName={client.name}
-                siblingClients={siblingClients}
-                onSave={handleSaveProgram}
-              />
-            )}
-            {tab === "progress" && (
-              <ProgressSection entries={progressEntries} onAdd={handleAddProgressEntry} />
-            )}
-          </>
+        {/* Contenuto dinamico delle sezioni */}
+        {tab === "intake" && (
+          <IntakeSection intake={intake} isTrainer={true} onSave={handleSaveIntake} />
         )}
+
+        {tab === "program" && (
+          <ProgramSection
+            program={program}
+            isTrainer={true}
+            clientId="local-demo"
+            clientName="Atleta Test"
+            siblingClients={[]}
+            onSave={handleSaveProgram}
+          />
+        )}
+
+        {tab === "progress" && (
+          <ProgressSection entries={entries} onAdd={handleAddProgress} />
+        )}
+
       </div>
     </div>
   );
 }
 
-// ---------- Intake section ----------
-export function IntakeSection({ intake = {}, isTrainer, onSave }) {
-  const safeIntake = intake || {};
-  const [editing, setEditing] = useState(isTrainer && !safeIntake.goal);
-  const [form, setForm] = useState({
-    birthDate: safeIntake.birthDate || "",
-    sex: safeIntake.sex || "M",
-    heightCm: safeIntake.heightCm || "",
-    startingWeight: safeIntake.startingWeight || "",
-    activityLevel: safeIntake.activityLevel || "moderato",
-    goal: safeIntake.goal || "",
-    injuries: safeIntake.injuries || "",
-    notes: safeIntake.notes || "",
-  });
+// ---------- Intake Section ----------
+function IntakeSection({ intake = {}, isTrainer, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(intake);
 
-  useEffect(() => {
-    const si = intake || {};
-    setForm({
-      birthDate: si.birthDate || "",
-      sex: si.sex || "M",
-      heightCm: si.heightCm || "",
-      startingWeight: si.startingWeight || "",
-      activityLevel: si.activityLevel || "moderato",
-      goal: si.goal || "",
-      injuries: si.injuries || "",
-      notes: si.notes || "",
-    });
-  }, [intake]);
+  useEffect(() => { setForm(intake); }, [intake]);
 
   const handleSave = () => {
     if (onSave) onSave(form);
@@ -579,11 +320,9 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
 }
 
 // ---------- Program Section ----------
-export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
-  const safeProgram = program || {};
+function ProgramSection({ program, isTrainer, onSave }) {
+  const safeProgram = program || { days: [] };
   const [activeDayIdx, setActiveDayIdx] = useState(0);
-  const [activeVideoUrl, setActiveVideoUrl] = useState(null);
-  const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const days = safeProgram.days || [];
@@ -605,14 +344,14 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   };
 
   const deleteDay = (idx) => {
-    if (!window.confirm("Sei sicuro di voler eliminare questa giornata di allenamento?")) return;
+    if (!window.confirm("Eliminare questa giornata?")) return;
     const updated = days.filter((_, i) => i !== idx);
     handleUpdateProgram(updated);
     if (activeDayIdx >= updated.length) setActiveDayIdx(Math.max(0, updated.length - 1));
   };
 
   const addBlock = (dayIdx) => {
-    const newBlock = { id: uid(), rounds: "3", restBetweenExercises: "", restAfterRound: "90''", exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }] };
+    const newBlock = { id: uid(), rounds: "3", restAfterRound: "90''", exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }] };
     patchDay(dayIdx, (day) => ({ ...day, blocks: [...(day.blocks || []), newBlock] }));
   };
 
@@ -629,47 +368,22 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
     patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: block.exercises.filter((_, i) => i !== exIdx) }));
   };
 
-  const copyFromClient = async (sourceClientId) => {
-    if (!sourceClientId) return;
-    const p = await fetchProgram(sourceClientId);
-    if (p && p.days) {
-      if (window.confirm("Sostituire il programma corrente con quello selezionato?")) {
-        handleUpdateProgram(p.days);
-      }
-    }
-  };
-
   return (
     <div>
-      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>
-          {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
-        </h3>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={() => window.print()} style={secondaryBtn} title="Stampa scheda">
-            <Printer size={15} /> Stampa
-          </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>PROGRAMMA DI ALLENAMENTO</h3>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => window.print()} style={secondaryBtn}><Printer size={15} /> Stampa</button>
           {isTrainer && (
-            <button onClick={() => setIsEditing(!isEditing)} style={{ ...secondaryBtn, borderColor: isEditing ? C.accent : C.border, color: isEditing ? C.accent : C.text }}>
-              {isEditing ? <Check size={15} /> : <Edit2 size={15} />} {isEditing ? "Fine Modifica" : "Modifica"}
+            <button onClick={() => setIsEditing(!isEditing)} style={{ ...secondaryBtn, color: isEditing ? C.accent : C.text }}>
+              {isEditing ? <Check size={15} /> : <Edit2 size={15} />} {isEditing ? "Fine" : "Modifica"}
             </button>
           )}
         </div>
       </div>
 
-      {isTrainer && isEditing && (siblingClients || []).length > 0 && (
-        <div className="no-print" style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-          <Copy size={16} color={C.accent} />
-          <span style={{ ...fontBody, fontSize: 13, color: C.textDim }}>Copia programma da:</span>
-          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 10px", borderRadius: 6, fontSize: 13 }}>
-            <option value="" disabled>Seleziona cliente...</option>
-            {siblingClients.filter((c) => c.id !== clientId).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-        </div>
-      )}
-
       {days.length > 0 && (
-        <div className="no-print" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
           {days.map((day, idx) => (
             <button
               key={day.id || idx}
@@ -686,26 +400,12 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
             </button>
           ))}
           {isTrainer && isEditing && (
-            <button onClick={addDay} style={{ ...secondaryBtn, padding: "8px 12px" }}>
-              <Plus size={15} /> Giorno
-            </button>
+            <button onClick={addDay} style={{ ...secondaryBtn, padding: "8px 12px" }}><Plus size={15} /> Giorno</button>
           )}
         </div>
       )}
 
-      {days.length === 0 ? (
-        <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-          <Dumbbell size={28} color={C.textDim} style={{ marginBottom: 8 }} />
-          <p style={{ ...fontBody, margin: 0 }}>
-            {isTrainer ? "Nessun giorno di allenamento ancora creato. Clicca su Modifica per iniziare." : "Nessun programma ancora assegnato dal tuo trainer."}
-          </p>
-          {isTrainer && !isEditing && (
-            <button onClick={() => setIsEditing(true)} style={{ ...primaryBtn, marginTop: 12 }}>
-              <Plus size={16} /> Inizia a Creare Programma
-            </button>
-          )}
-        </div>
-      ) : currentDay ? (
+      {currentDay ? (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             {isEditing ? (
@@ -718,125 +418,106 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
               <h2 style={{ ...fontDisplay, fontSize: 24, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
             )}
             {isEditing && (
-              <button onClick={() => deleteDay(activeDayIdx)} style={{ ...iconBtn, color: C.danger }}>
-                <Trash2 size={16} />
-              </button>
+              <button onClick={() => deleteDay(activeDayIdx)} style={{ ...iconBtn, color: C.danger }}><Trash2 size={16} /></button>
             )}
           </div>
 
-          {(currentDay.blocks || []).length === 0 ? (
-            <p style={{ color: C.textDim, fontSize: 13 }}>Nessun blocco di esercizi in questo giorno.</p>
-          ) : (
-            (currentDay.blocks || []).map((block, blockIdx) => (
-              <div key={block.id || blockIdx} style={{ background: C.panelHi, borderRadius: 10, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ ...fontMono, fontSize: 12, color: C.accent }}>BLOCCO {blockIdx + 1}</span>
-                  {isEditing && (
-                    <button onClick={() => deleteBlock(activeDayIdx, blockIdx)} style={{ ...iconBtn, color: C.danger }}>
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-                {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "center" }}>
-                    {isEditing ? (
-                      <>
-                        <input
-                          placeholder="Nome esercizio"
-                          value={ex.name || ""}
-                          onChange={(e) => patchExercise(activeDayIdx, blockIdx, exIdx, (item) => ({ ...item, name: e.target.value }))}
-                          style={{ ...inputStyle, marginTop: 0, flex: 2 }}
-                        />
-                        <input
-                          placeholder="Serie/Rip"
-                          value={ex.reps || ""}
-                          onChange={(e) => patchExercise(activeDayIdx, blockIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))}
-                          style={{ ...inputStyle, marginTop: 0, flex: 1 }}
-                        />
-                        <button onClick={() => deleteExercise(activeDayIdx, blockIdx, exIdx)} style={{ ...iconBtn, color: C.danger }}>
-                          <Trash2 size={14} />
-                        </button>
-                      </>
-                    ) : (
-                      <div style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
-                        <span style={{ color: C.text, fontSize: 14 }}>{ex.name || "Esercizio senza nome"}</span>
-                        <span style={{ color: C.textDim, fontSize: 14, ...fontMono }}>{ex.reps}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+          {(currentDay.blocks || []).map((block, blockIdx) => (
+            <div key={block.id || blockIdx} style={{ background: C.panelHi, borderRadius: 10, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ ...fontMono, fontSize: 12, color: C.accent }}>BLOCCO {blockIdx + 1}</span>
                 {isEditing && (
-                  <button onClick={() => addExercise(activeDayIdx, blockIdx)} style={{ ...secondaryBtn, fontSize: 12, padding: "4px 10px", marginTop: 4 }}>
-                    <Plus size={13} /> Esercizio
-                  </button>
+                  <button onClick={() => deleteBlock(activeDayIdx, blockIdx)} style={{ ...iconBtn, color: C.danger }}><Trash2 size={14} /></button>
                 )}
               </div>
-            ))
-          )}
+              {(block.exercises || []).map((ex, exIdx) => (
+                <div key={ex.id || exIdx} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "center" }}>
+                  {isEditing ? (
+                    <>
+                      <input
+                        placeholder="Nome esercizio"
+                        value={ex.name || ""}
+                        onChange={(e) => patchExercise(activeDayIdx, blockIdx, exIdx, (item) => ({ ...item, name: e.target.value }))}
+                        style={{ ...inputStyle, marginTop: 0, flex: 2 }}
+                      />
+                      <input
+                        placeholder="Serie/Rip"
+                        value={ex.reps || ""}
+                        onChange={(e) => patchExercise(activeDayIdx, blockIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))}
+                        style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+                      />
+                      <button onClick={() => deleteExercise(activeDayIdx, blockIdx, exIdx)} style={{ ...iconBtn, color: C.danger }}><Trash2 size={14} /></button>
+                    </>
+                  ) : (
+                    <div style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ color: C.text, fontSize: 14 }}>{ex.name || "Esercizio senza nome"}</span>
+                      <span style={{ color: C.textDim, fontSize: 14, ...fontMono }}>{ex.reps}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {isEditing && (
+                <button onClick={() => addExercise(activeDayIdx, blockIdx)} style={{ ...secondaryBtn, fontSize: 12, padding: "4px 10px", marginTop: 4 }}>
+                  <Plus size={13} /> Esercizio
+                </button>
+              )}
+            </div>
+          ))}
 
           {isEditing && (
-            <button onClick={() => addBlock(activeDayIdx)} style={{ ...primaryBtn, marginTop: 10 }}>
-              <Plus size={15} /> Aggiungi Blocco
-            </button>
+            <button onClick={() => addBlock(activeDayIdx)} style={{ ...primaryBtn, marginTop: 10 }}><Plus size={15} /> Aggiungi Blocco</button>
           )}
         </div>
-      ) : null}
-    </div>
-  );
-}
-
-// ---------- Progress Section (Placeholder) ----------
-export function ProgressSection({ entries, onAdd }) {
-  return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-      <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: "0 0 16px" }}>PROGRESSI</h3>
-      {entries.length === 0 ? (
-        <p style={{ color: C.textDim, fontSize: 14 }}>Nessuna misurazione registrata.</p>
       ) : (
-        entries.map((en, idx) => (
-          <div key={idx} style={{ padding: 10, background: C.panelHi, borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
-            <span>{fmtDate(en.date)}</span>
-            <span>{en.weight ? `${en.weight} kg` : ""}</span>
-          </div>
-        ))
+        <div style={{ textAlign: "center", padding: 30, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <p style={{ color: C.textDim }}>Nessun programma presente.</p>
+          {isTrainer && <button onClick={addDay} style={primaryBtn}><Plus size={15} /> Crea Giorno</button>}
+        </div>
       )}
     </div>
   );
 }
 
-// ============================================================
-// MAIN APP ROOT (Gestione Routing / Auth State)
-// ============================================================
-export default function App() {
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+// ---------- Progress Section ----------
+function ProgressSection({ entries, onAdd }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [weight, setWeight] = useState("");
+  const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim }}>
-        Caricamento in corso...
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <AuthScreen onLoggedIn={setSession} />;
-  }
+  const handleSubmit = () => {
+    if (!weight) return;
+    onAdd({ id: uid(), date: new Date().toISOString().slice(0, 10), weight: parseFloat(weight), notes });
+    setWeight(""); setNotes(""); setShowAdd(false);
+  };
 
   return (
-    <TrainerDashboard session={session} onLogout={() => supabase.auth.signOut()} />
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>PROGRESSI</h3>
+        <button onClick={() => setShowAdd(!showAdd)} style={primaryBtn}><Plus size={15} /> Nuova Misurazione</button>
+      </div>
+
+      {showAdd && (
+        <div style={{ background: C.panelHi, padding: 14, borderRadius: 8, marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          <Field label="Peso (kg)" type="number" value={weight} onChange={setWeight} />
+          <Field label="Note" value={notes} onChange={setNotes} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={handleSubmit} style={primaryBtn}>Salva</button>
+            <button onClick={() => setShowAdd(false)} style={secondaryBtn}>Annulla</button>
+          </div>
+        </div>
+      )}
+
+      {entries.length === 0 ? (
+        <p style={{ color: C.textDim, fontSize: 14 }}>Nessuna misurazione registrata.</p>
+      ) : (
+        entries.map((en, idx) => (
+          <div key={idx} style={{ padding: 12, background: C.panelHi, borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ ...fontMono, color: C.textDim, fontSize: 12 }}>{fmtDate(en.date)}</span>
+            <span style={{ ...fontDisplay, color: C.positive, fontSize: 18 }}>{en.weight} kg</span>
+          </div>
+        ))
+      )}
+    </div>
   );
 }
