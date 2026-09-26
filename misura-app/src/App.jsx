@@ -1,4 +1,5 @@
 // ---------- Intake section ----------
+import { supabase } from './supabaseClient';
 const ACTIVITY_LEVELS = [
   { value: "sedentario", label: "Sedentario", mult: 1.2 },
   { value: "leggero", label: "Leggero (1-3 giorni/sett.)", mult: 1.375 },
