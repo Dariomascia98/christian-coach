@@ -1,4 +1,5 @@
 // ---------- Intake section ----------
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 const ACTIVITY_LEVELS = [
   { value: "sedentario", label: "Sedentario", mult: 1.2 },
