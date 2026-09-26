@@ -8,22 +8,11 @@ import {
 /* ============================================================
    NOTE IMPORTANTE SULLO SCHEMA DATABASE
    ============================================================
-   Ho ipotizzato questa struttura Supabase, adattala se diversa:
-
    - tabella "clients": id (uuid), trainer_id (uuid, FK auth.users),
-     auth_user_id (uuid, FK auth.users, nullable finché il cliente
-     non si registra), name (text), intake (jsonb)
+     auth_user_id (uuid, FK auth.users, nullable), name (text), intake (jsonb)
    - tabella "programs": id, client_id (FK clients), days (jsonb)
    - tabella "progress_entries": id, client_id, date, weight, waist,
      chest, hips, notes, photo (url o base64)
-   - Il ruolo "trainer" è determinato da un campo "role" nei
-     user_metadata dell'utente Supabase Auth (impostato in fase di
-     creazione account, es. tramite api/create-client.js per il
-     service role, o manualmente dalla dashboard Supabase per te
-     stesso come trainer).
-
-   Se la tua struttura è diversa, dimmi i nomi reali delle tabelle
-   e colonne e adatto le query.
    ============================================================ */
 
 // --- Utility e Costanti Globali ---
@@ -145,7 +134,7 @@ function updateExerciseInBlock(block, exIdx, updater) {
 // SCHERMATA DI LOGIN / REGISTRAZIONE
 // ============================================================
 function AuthScreen({ onLoggedIn }) {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -165,8 +154,6 @@ function AuthScreen({ onLoggedIn }) {
         if (error) throw error;
         onLoggedIn(data.session);
       } else {
-        // Registrazione: usata di norma dal cliente invitato dal trainer,
-        // che imposta la propria password al primo accesso.
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (data.session) {
@@ -219,7 +206,7 @@ function AuthScreen({ onLoggedIn }) {
 }
 
 // ============================================================
-// DASHBOARD TRAINER: elenco clienti + creazione nuovo cliente
+// DASHBOARD TRAINER
 // ============================================================
 function TrainerDashboard({ session, onLogout }) {
   const [clients, setClients] = useState([]);
@@ -257,9 +244,6 @@ function TrainerDashboard({ session, onLogout }) {
     }
     setCreating(true);
     try {
-      // Chiama la funzione serverless (api/create-client.js) che usa la
-      // service_role key lato server per creare l'utente auth + la riga cliente.
-      // Adatta l'URL se il tuo endpoint è diverso.
       const res = await fetch('/api/create-client', {
         method: 'POST',
         headers: {
@@ -356,12 +340,10 @@ function TrainerDashboard({ session, onLogout }) {
 }
 
 // ============================================================
-// WORKSPACE CLIENTE: anamnesi + programma + progressi
-// (usato sia dal trainer che vede un suo cliente, sia dal
-// cliente che vede se stesso)
+// WORKSPACE CLIENTE
 // ============================================================
 function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated }) {
-  const [tab, setTab] = useState("intake"); // intake | program | progress
+  const [tab, setTab] = useState("intake");
   const [program, setProgram] = useState(null);
   const [progressEntries, setProgressEntries] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -736,345 +718,116 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
               <h2 style={{ ...fontDisplay, fontSize: 24, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
             )}
             {isEditing && (
-              <button onClick={() => deleteDay(activeDayIdx)} style={iconBtn} title="Elimina Giorno">
-                <Trash2 size={18} color={C.accent} />
+              <button onClick={() => deleteDay(activeDayIdx)} style={{ ...iconBtn, color: C.danger }}>
+                <Trash2 size={16} />
               </button>
             )}
           </div>
 
-          {isEditing && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-              {WEEKDAYS.map((w) => {
-                const active = (currentDay.weekdays || []).includes(w.code);
-                return (
-                  <button
-                    key={w.code}
-                    onClick={() => patchDay(activeDayIdx, (day) => {
-                      const curWd = day.weekdays || [];
-                      return { ...day, weekdays: active ? curWd.filter((c) => c !== w.code) : [...curWd, w.code] };
-                    })}
-                    style={{
-                      padding: "4px 8px", borderRadius: 6, fontSize: 11, ...fontMono, cursor: "pointer",
-                      border: `1px solid ${active ? C.accent : C.border}`,
-                      background: active ? C.accentSoft : C.panelHi,
-                      color: active ? C.accent : C.textDim
-                    }}
-                  >
-                    {w.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {(currentDay.blocks || []).map((block, bIdx) => (
-            <div key={block.id || bIdx} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
-                <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>BLOCCO #{bIdx + 1}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>SERIE:</span>
-                    {isEditing ? (
-                      <input value={block.rounds || ""} onChange={(e) => patchBlock(activeDayIdx, bIdx, (b) => ({ ...b, rounds: e.target.value }))} style={{ width: 50, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }} />
-                    ) : (
-                      <span style={{ ...fontMono, fontSize: 12, color: C.accent, fontWeight: 700 }}>{block.rounds}</span>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>RECUPERO:</span>
-                    {isEditing ? (
-                      <input value={block.restAfterRound || ""} onChange={(e) => patchBlock(activeDayIdx, bIdx, (b) => ({ ...b, restAfterRound: e.target.value }))} style={{ width: 60, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }} />
-                    ) : (
-                      <span style={{ ...fontMono, fontSize: 12, color: C.text }}>{block.restAfterRound}</span>
-                    )}
-                  </div>
+          {(currentDay.blocks || []).length === 0 ? (
+            <p style={{ color: C.textDim, fontSize: 13 }}>Nessun blocco di esercizi in questo giorno.</p>
+          ) : (
+            (currentDay.blocks || []).map((block, blockIdx) => (
+              <div key={block.id || blockIdx} style={{ background: C.panelHi, borderRadius: 10, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ ...fontMono, fontSize: 12, color: C.accent }}>BLOCCO {blockIdx + 1}</span>
                   {isEditing && (
-                    <button onClick={() => deleteBlock(activeDayIdx, bIdx)} style={iconBtn} title="Elimina blocco">
-                      <Trash2 size={15} />
+                    <button onClick={() => deleteBlock(activeDayIdx, blockIdx)} style={{ ...iconBtn, color: C.danger }}>
+                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
+                  <div key={ex.id || exIdx} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "center" }}>
                     {isEditing ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }} />
-                          <input placeholder="Ripetizioni" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }} />
-                          <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input placeholder="Link Video YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }} />
-                          <input placeholder="Note / Istruzioni" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }} />
-                        </div>
-                      </div>
+                      <>
+                        <input
+                          placeholder="Nome esercizio"
+                          value={ex.name || ""}
+                          onChange={(e) => patchExercise(activeDayIdx, blockIdx, exIdx, (item) => ({ ...item, name: e.target.value }))}
+                          style={{ ...inputStyle, marginTop: 0, flex: 2 }}
+                        />
+                        <input
+                          placeholder="Serie/Rip"
+                          value={ex.reps || ""}
+                          onChange={(e) => patchExercise(activeDayIdx, blockIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))}
+                          style={{ ...inputStyle, marginTop: 0, flex: 1 }}
+                        />
+                        <button onClick={() => deleteExercise(activeDayIdx, blockIdx, exIdx)} style={{ ...iconBtn, color: C.danger }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </>
                     ) : (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 14 }}>{ex.name || "Esercizio"}</span>
-                            {ex.videoUrl && (
-                              <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video demo">
-                                <PlayCircle size={18} color={C.accent} />
-                              </button>
-                            )}
-                          </div>
-                          {ex.note && <p style={{ ...fontBody, fontSize: 12, color: C.textDim, margin: "2px 0 0" }}>{ex.note}</p>}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span style={{ ...fontMono, fontSize: 13, color: C.positive, fontWeight: 600 }}>{ex.reps} rip</span>
-                          <button onClick={() => setActiveLoadExercise(ex.name)} style={secondaryBtn} title="Registra/Visualizza carichi">
-                            <Dumbbell size={14} /> Carichi
-                          </button>
-                        </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
+                        <span style={{ color: C.text, fontSize: 14 }}>{ex.name || "Esercizio senza nome"}</span>
+                        <span style={{ color: C.textDim, fontSize: 14, ...fontMono }}>{ex.reps}</span>
                       </div>
                     )}
                   </div>
                 ))}
-
                 {isEditing && (
-                  <button onClick={() => addExercise(activeDayIdx, bIdx)} style={{ ...secondaryBtn, justifyContent: "center", borderStyle: "dashed" }}>
-                    <Plus size={14} /> Aggiungi Esercizio
+                  <button onClick={() => addExercise(activeDayIdx, blockIdx)} style={{ ...secondaryBtn, fontSize: 12, padding: "4px 10px", marginTop: 4 }}>
+                    <Plus size={13} /> Esercizio
                   </button>
                 )}
               </div>
-            </div>
-          ))}
+            ))
+          )}
 
           {isEditing && (
             <button onClick={() => addBlock(activeDayIdx)} style={{ ...primaryBtn, marginTop: 10 }}>
-              <Plus size={16} /> Aggiungi Blocco
+              <Plus size={15} /> Aggiungi Blocco
             </button>
           )}
         </div>
       ) : null}
-
-      {activeVideoUrl && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 600, padding: 16, position: "relative" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text }}>Video Dimostrativo</span>
-              <button onClick={() => setActiveVideoUrl(null)} style={iconBtn}><X size={20} color={C.text} /></button>
-            </div>
-            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-              <iframe
-                src={activeVideoUrl.replace("watch?v=", "embed/")}
-                title="Video demo"
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none", borderRadius: 8 }}
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeLoadExercise && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 420, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text }}>Carichi — {activeLoadExercise}</span>
-              <button onClick={() => setActiveLoadExercise(null)} style={iconBtn}><X size={20} color={C.text} /></button>
-            </div>
-            <p style={{ ...fontBody, fontSize: 13, color: C.textDim }}>
-              Funzione in arrivo: qui potrai registrare i carichi (kg/ripetizioni) per questo esercizio nel tempo.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-// ---------- Progress Section ----------
-export function ProgressSection({ entries = [], onAdd }) {
-  const safeEntries = entries || [];
-  const [showAdd, setShowAdd] = useState(false);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [weight, setWeight] = useState("");
-  const [waist, setWaist] = useState("");
-  const [chest, setChest] = useState("");
-  const [hips, setHips] = useState("");
-  const [notes, setNotes] = useState("");
-  const [photo, setPhoto] = useState(null);
-  const [photoProcessing, setPhotoProcessing] = useState(false);
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoProcessing(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        setPhoto(uploadEvent.target.result);
-        setPhotoProcessing(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      console.error(err);
-      setPhotoProcessing(false);
-    }
-  };
-
-  const submitEntry = () => {
-    const parsedWeight = parseFloat(weight);
-    if (!weight || isNaN(parsedWeight)) return;
-    const newEntry = {
-      id: uid(), date, weight: parsedWeight,
-      waist: waist ? parseFloat(waist) : null,
-      chest: chest ? parseFloat(chest) : null,
-      hips: hips ? parseFloat(hips) : null,
-      notes, photo
-    };
-    if (onAdd) onAdd(newEntry);
-    setShowAdd(false);
-    setWeight(""); setWaist(""); setChest(""); setHips(""); setNotes(""); setPhoto(null);
-  };
-
+// ---------- Progress Section (Placeholder) ----------
+export function ProgressSection({ entries, onAdd }) {
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>TRACCIAMENTO PROGRESSI</h3>
-        <button onClick={() => setShowAdd(!showAdd)} style={primaryBtn}>
-          <Plus size={16} /> Nuova Misurazione
-        </button>
-      </div>
-
-      {showAdd && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-          <h4 style={{ ...fontDisplay, fontSize: 18, color: C.accent, margin: "0 0 12px" }}>Aggiungi Aggiornamento</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Data" type="date" value={date} onChange={setDate} />
-            <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
-            <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
-            <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
-            <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
-            <Field label="Note" value={notes} onChange={setNotes} />
-          </div>
-
-          <div style={{ marginTop: 12, marginBottom: 14 }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO PROGRESSI</label>
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
-            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer" }}>
-              <Camera size={16} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
-            </label>
-            {photo && (
-              <div style={{ marginTop: 10, position: "relative", width: 100, height: 100 }}>
-                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }} />
-                <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -6, right: -6, background: C.accent, border: "none", borderRadius: "50%", color: "#fff", width: 20, height: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={submitEntry} style={primaryBtn}>Salva Registro</button>
-            <button onClick={() => setShowAdd(false)} style={secondaryBtn}>Annulla</button>
-          </div>
-        </div>
-      )}
-
-      {safeEntries.length === 0 ? (
-        <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-          <TrendingUp size={28} color={C.textDim} style={{ marginBottom: 8 }} />
-          <p style={{ ...fontBody, margin: 0 }}>Nessun dato sul peso o misurazioni inserito finora.</p>
-        </div>
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+      <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: "0 0 16px" }}>PROGRESSI</h3>
+      {entries.length === 0 ? (
+        <p style={{ color: C.textDim, fontSize: 14 }}>Nessuna misurazione registrata.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[...safeEntries].reverse().map((entry) => (
-            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, display: "flex", gap: 14, alignItems: "center" }}>
-              {entry.photo ? (
-                <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
-              ) : (
-                <div style={{ width: 70, height: 70, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ImageOff size={20} color={C.textDim} />
-                </div>
-              )}
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>{fmtDate(entry.date)}</span>
-                  <span style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{entry.weight} kg</span>
-                </div>
-                <div style={{ display: "flex", gap: 12, ...fontMono, fontSize: 11, color: C.textDim }}>
-                  {entry.waist && <span>Vita: {entry.waist}cm</span>}
-                  {entry.chest && <span>Petto: {entry.chest}cm</span>}
-                  {entry.hips && <span>Fianchi: {entry.hips}cm</span>}
-                </div>
-                {entry.notes && <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "6px 0 0" }}>{entry.notes}</p>}
-              </div>
-            </div>
-          ))}
-        </div>
+        entries.map((en, idx) => (
+          <div key={idx} style={{ padding: 10, background: C.panelHi, borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+            <span>{fmtDate(en.date)}</span>
+            <span>{en.weight ? `${en.weight} kg` : ""}</span>
+          </div>
+        ))
       )}
     </div>
   );
 }
 
 // ============================================================
-// COMPONENTE APP PRINCIPALE (questo mancava: export default!)
+// MAIN APP ROOT (Gestione Routing / Auth State)
 // ============================================================
 export default function App() {
-  const [session, setSession] = useState(undefined); // undefined = ancora in caricamento
-  const [role, setRole] = useState(null); // "trainer" | "client"
-  const [myClientRecord, setMyClientRecord] = useState(null);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Recupera la sessione corrente all'avvio dell'app
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
     });
 
-    // Ascolta i cambi di stato (login, logout, refresh token)
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
     });
 
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!session) {
-      setRole(null);
-      setMyClientRecord(null);
-      return;
-    }
-    // Determina il ruolo: se l'utente ha una riga in "clients" con
-    // auth_user_id = suo id, è un cliente; altrimenti è il trainer.
-    // Adatta questa logica al tuo schema reale se diverso.
-    (async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle();
-      if (error) {
-        console.error("Errore nel determinare il ruolo utente:", error);
-      }
-      if (data) {
-        setRole("client");
-        setMyClientRecord(data);
-      } else {
-        setRole("trainer");
-      }
-    })();
-  }, [session]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  // Stato di caricamento iniziale: mostra qualcosa invece di uno schermo nero
-  if (session === undefined) {
+  if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ ...fontBody, color: C.textDim }}>Caricamento...</p>
+      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", color: C.textDim }}>
+        Caricamento in corso...
       </div>
     );
   }
@@ -1083,24 +836,7 @@ export default function App() {
     return <AuthScreen onLoggedIn={setSession} />;
   }
 
-  if (role === null) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ ...fontBody, color: C.textDim }}>Caricamento profilo...</p>
-      </div>
-    );
-  }
-
-  if (role === "trainer") {
-    return <TrainerDashboard session={session} onLogout={handleLogout} />;
-  }
-
-  // role === "client"
   return (
-    <ClientWorkspace
-      client={myClientRecord}
-      isTrainer={false}
-      onBack={() => {}}
-    />
+    <TrainerDashboard session={session} onLogout={() => supabase.auth.signOut()} />
   );
 }
