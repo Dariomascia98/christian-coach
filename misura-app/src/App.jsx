@@ -1156,12 +1156,13 @@ export default function App() {
       return;
     }
 
-    const { error: profErr } = await supabase.from("profiles").insert({
-      id: authData.user.id,
-      name,
-      username: username.trim(),
-      role: "trainer",
-    });
+const { error: profErr } = await supabase.from("profiles").insert({
+  id: authData.user.id,
+  name: name,
+  username: username.trim(),
+  role: "client", // O 'trainer' in base al tipo di utente
+  created_by: coachId // L'ID del coach attualmente loggato
+});
 
     if (profErr) {
       callback("Errore durante il salvataggio del profilo.");
