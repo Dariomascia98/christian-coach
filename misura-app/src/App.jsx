@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   LogOut, Plus, Trash2, ChevronLeft, Dumbbell, TrendingUp, Camera,
   X, PlayCircle, Users as UsersIcon, Ruler, Check, ImageOff,
-  ClipboardList, Copy, Printer, Edit2, Save
+  ClipboardList, Copy, Printer, Edit2, Save, UserPlus
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { supabase, supabaseTemp } from "./supabaseClient";
+import { supabase } from "./supabaseClient";
 
 // ---------- Design tokens ----------
 const C = {
@@ -117,40 +117,6 @@ async function saveIntakeRemote(clientId, intake) {
     .from("intake")
     .upsert({ client_id: clientId, data: intake, updated_at: new Date().toISOString() });
   return !error;
-}
-
-async function getAccessToken() {
-  // Tenta prima di ottenere la sessione attuale
-  const { data: { session }, error } = await supabase.auth.getSession();
-  
-  // Se non c'è sessione o c'è un errore, tenta il refresh del token
-  if (error || !session) {
-    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError || !refreshData?.session) {
-      return null;
-    }
-    return refreshData.session.access_token;
-  }
-  
-  return session.access_token;
-}
-
-
-async function callServerFunction(path, body) {
-  const token = await getAccessToken();
-  if (!token) return { ok: false, error: "Sessione scaduta, rientra e riprova." };
-  try {
-    const res = await fetch(path, {
-      method: "POST",
-     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) return { ok: false, error: json.error || "Errore del server." };
-    return { ok: true, data: json };
-  } catch (e) {
-    return { ok: false, error: e?.message || "Errore di rete." };
-  }
 }
 
 function exKey(name) {
@@ -389,7 +355,7 @@ function LoadModal({ exerciseName, clientId, onClose }) {
 }
 
 // ---------- Welcome / landing screen ----------
-function WelcomeScreen({ onGoLogin, onGoSetup }) {
+function WelcomeScreen({ onGoLogin, onGoClientRegister, onGoSetup }) {
   return (
     <div style={wrapStyle}>
       <FontImport />
@@ -400,15 +366,20 @@ function WelcomeScreen({ onGoLogin, onGoSetup }) {
           Gestisci i tuoi clienti, i loro programmi e i loro progressi in un unico posto.
         </p>
         <button onClick={onGoLogin} style={primaryBtn}>Accedi</button>
-        <button onClick={onGoSetup} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10 }}>
-          Crea un account trainer
+        
+        <button onClick={onGoClientRegister} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, background: C.panelHi }}>
+          <UserPlus size={16} color={C.accent} /> Sei un Cliente? Registrati qui
+        </button>
+
+        <button onClick={onGoSetup} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 16, border: "none", color: C.textDim }}>
+          Crea account Trainer
         </button>
       </div>
     </div>
   );
 }
 
-// ---------- Setup screen ----------
+// ---------- Setup screen (Trainer) ----------
 function SetupScreen({ onSubmit, onBack }) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -434,13 +405,13 @@ function SetupScreen({ onSubmit, onBack }) {
       <FontImport />
       <div style={centerCard}>
         <Logo />
-        <TapeDivider label="Nuovo account" />
-        <h2 style={{ ...fontDisplay, fontSize: 26, color: C.text, marginBottom: 4 }}>Crea il tuo account trainer</h2>
+        <TapeDivider label="Nuovo Trainer" />
+        <h2 style={{ ...fontDisplay, fontSize: 26, color: C.text, marginBottom: 4 }}>Crea account trainer</h2>
         <p style={{ ...fontBody, color: C.textDim, fontSize: 14, marginBottom: 20 }}>
           Questo sarà il tuo accesso principale per gestire i clienti.
         </p>
         <Field label="Nome e cognome" value={name} onChange={setName} />
-        <Field label="Username" value={username} onChange={setUsername} />
+        <Field label="Username / Email" value={username} onChange={setUsername} />
         <Field label="Password" value={password} onChange={setPassword} type="password" />
         {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4 }}>{error}</p>}
         <button onClick={submit} disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
@@ -454,8 +425,64 @@ function SetupScreen({ onSubmit, onBack }) {
   );
 }
 
+// ---------- Client Self-Registration Screen ----------
+function ClientRegisterScreen({ onSubmit, onBack }) {
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!name.trim() || !username.trim() || !password.trim()) {
+      setError("Compila tutti i campi.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    onSubmit({ name: name.trim(), username: username.trim(), password }, (err) => {
+      setBusy(false);
+      if (err) setError(err);
+      else setSuccess(true);
+    });
+  };
+
+  return (
+    <div style={wrapStyle}>
+      <FontImport />
+      <div style={centerCard}>
+        <Logo />
+        <TapeDivider label="Registrazione Cliente" />
+        {success ? (
+          <div style={{ textAlign: "center", padding: "10px 0" }}>
+            <h3 style={{ ...fontDisplay, fontSize: 24, color: C.positive }}>Registrazione Completata!</h3>
+            <p style={{ ...fontBody, color: C.textDim, fontSize: 14, marginBottom: 20 }}>
+              Il tuo profilo è pronto. Ora puoi effettuare il login con i tuoi dati.
+            </p>
+            <button onClick={onBack} style={primaryBtn}>Vai al Login</button>
+          </div>
+        ) : (
+          <>
+            <Field label="Nome e Cognome" value={name} onChange={setName} />
+            <Field label="Username / Email" value={username} onChange={setUsername} />
+            <Field label="Password" value={password} onChange={setPassword} type="password" />
+            {error && <p style={{ color: C.accent, ...fontBody, fontSize: 13, marginTop: 4 }}>{error}</p>}
+            <button onClick={submit} disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
+              {busy ? "Registrazione in corso..." : "Registrati Ora"}
+            </button>
+            <button onClick={onBack} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, border: "none" }}>
+              ← Torna indietro
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---------- Login screen ----------
-function LoginScreen({ onSubmit, onBack }) {
+function LoginScreen({ onSubmit, onBack, onGoRegister }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -486,6 +513,11 @@ function LoginScreen({ onSubmit, onBack }) {
         <button onClick={submit} disabled={busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
           {busy ? "Verifica in corso..." : "Entra"}
         </button>
+
+        <button onClick={onGoRegister} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 14 }}>
+          Sei un cliente? Registrati qui
+        </button>
+
         <button onClick={onBack} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10, border: "none" }}>
           ← Torna indietro
         </button>
@@ -558,51 +590,16 @@ const secondaryBtn = {
 const iconBtn = { background: "none", border: "none", color: C.textDim, cursor: "pointer", padding: 6, display: "inline-flex", alignItems: "center", justifyContent: "center" };
 
 // ---------- Trainer dashboard ----------
-function TrainerDashboard({ trainer, clients, onSelectClient, onAddClient, onDeleteClient, onLogout }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: "", username: "", password: "" });
-  const [error, setError] = useState("");
-
-  const submit = () => {
-    if (!form.name.trim() || !form.username.trim() || !form.password.trim()) {
-      setError("Compila tutti i campi.");
-      return;
-    }
-    onAddClient(form, (err) => {
-      if (err) setError(err);
-      else {
-        setForm({ name: "", username: "", password: "" });
-        setShowAdd(false);
-        setError("");
-      }
-    });
-  };
-
+function TrainerDashboard({ trainer, clients, onSelectClient, onDeleteClient, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <FontImport />
       <Header title={`Ciao, ${trainer.name}`} subtitle="Dashboard trainer" onLogout={onLogout} />
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 20px 60px" }}>
-        <TapeDivider label={`${clients.length} clienti`} />
-
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-          <button style={primaryBtn2} onClick={() => setShowAdd((s) => !s)}>
-            <Plus size={16} /> Nuovo cliente
-          </button>
-        </div>
-
-        {showAdd && (
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-            <Field label="Nome cliente" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-            <Field label="Username / Email" value={form.username} onChange={(v) => setForm({ ...form, username: v })} />
-            <Field label="Password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} type="password" />
-            {error && <p style={{ color: C.accent, fontSize: 13, ...fontBody }}>{error}</p>}
-            <button style={primaryBtn} onClick={submit}>Aggiungi cliente</button>
-          </div>
-        )}
+        <TapeDivider label={`${clients.length} clienti registrati`} />
 
         {clients.length === 0 ? (
-          <EmptyState icon={<UsersIcon size={28} color={C.textDim} />} text="Nessun cliente ancora. Aggiungine uno per iniziare a monitorare i suoi allenamenti." />
+          <EmptyState icon={<UsersIcon size={28} color={C.textDim} />} text="Nessun cliente ancora registrato. I tuoi clienti possono registrarsi autonomamente dall'app." />
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
             {clients.map((c) => (
@@ -629,8 +626,6 @@ function TrainerDashboard({ trainer, clients, onSelectClient, onAddClient, onDel
     </div>
   );
 }
-
-const primaryBtn2 = { ...primaryBtn, width: "auto", marginTop: 0 };
 
 function Header({ title, subtitle, onBack, onLogout }) {
   return (
@@ -773,12 +768,14 @@ const ACTIVITY_LEVELS = [
   { value: "molto_intenso", label: "Molto intenso (atleta/lavoro fisico)", mult: 1.9 },
 ];
 
-function calcBmrTdee({ sex, age, heightCm, weightKg, activityLevel }) {
-  const a = parseFloat(age), h = parseFloat(heightCm), w = parseFloat(weightKg);
-  if (!a || !h || !w) return null;
-  const bmr = sex === "F" ? 10 * w + 6.25 * h - 5 * a - 161 : 10 * w + 6.25 * h - 5 * a + 5;
+function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }) {
+  if (!birthDate || !heightCm || !startingWeight) return null;
+  const age = Math.floor((new Date() - new Date(birthDate)) / 31557600000);
+  const h = parseFloat(heightCm), w = parseFloat(startingWeight);
+  if (!age || !h || !w) return null;
+  const bmr = sex === "F" ? 10 * w + 6.25 * h - 5 * age - 161 : 10 * w + 6.25 * h - 5 * age + 5;
   const level = ACTIVITY_LEVELS.find((l) => l.value === activityLevel) || ACTIVITY_LEVELS[1];
-  return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult) };
+  return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult), age };
 }
 
 function IntakeSection({ intake, isTrainer, onSave }) {
@@ -807,210 +804,174 @@ function IntakeSection({ intake, isTrainer, onSave }) {
     });
   }, [intake]);
 
-  const calcAge = (dob) => {
-    if (!dob) return "";
-    const diff = Date.now() - new Date(dob).getTime();
-    return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
-  };
+  const metrics = calcBmrTdee(form);
 
-  const age = calcAge(form.birthDate);
-  const metrics = calcBmrTdee({ ...form, age });
-
-  const submit = async () => {
-    await onSave(form);
+  const save = () => {
+    onSave(form);
     setEditing(false);
   };
 
-  if (!editing && (intake.goal || intake.startingWeight || intake.birthDate)) {
+  if (editing) {
     return (
-      <div>
-        {isTrainer && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-            <button onClick={() => setEditing(true)} style={secondaryBtn}>
-              <Edit2 size={15} /> Modifica Anamnesi
-            </button>
+      <div style={{ background: C.panel, borderRadius: 12, padding: 20, border: `1px solid ${C.border}` }}>
+        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, marginBottom: 16 }}>Anamnesi e Parametri Iniziali</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
+          <div>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>SESSO</label>
+            <select
+              value={form.sex}
+              onChange={(e) => setForm({ ...form, sex: e.target.value })}
+              style={{ width: "100%", padding: "10px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody }}
+            >
+              <option value="M">Maschio</option>
+              <option value="F">Femmina</option>
+            </select>
           </div>
-        )}
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16, marginBottom: 16 }}>
-            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>ETÀ</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{age ? `${age} anni` : "-"}</p></div>
-            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>SESSO</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{intake.sex === "F" ? "Femmina" : "Maschio"}</p></div>
-            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>ALTEZZA</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{intake.heightCm ? `${intake.heightCm} cm` : "-"}</p></div>
-            <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>PESO INIZIALE</p><p style={{ ...fontBody, color: C.text, fontWeight: 600 }}>{intake.startingWeight ? `${intake.startingWeight} kg` : "-"}</p></div>
-          </div>
-
-          {metrics && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16 }}>
-              <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>BMR ESTIMATO</p><p style={{ ...fontDisplay, fontSize: 20, color: C.accent }}>{metrics.bmr} kcal</p></div>
-              <div><p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>TDEE ESTIMATO</p><p style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{metrics.tdee} kcal</p></div>
-            </div>
-          )}
-
-          {intake.goal && (
-            <div style={{ marginBottom: 12 }}>
-              <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>OBIETTIVO</p>
-              <p style={{ ...fontBody, color: C.text }}>{intake.goal}</p>
-            </div>
-          )}
-          {intake.injuries && (
-            <div style={{ marginBottom: 12 }}>
-              <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>INFORTUNI / LIMITAZIONI</p>
-              <p style={{ ...fontBody, color: C.text }}>{intake.injuries}</p>
-            </div>
-          )}
-          {intake.notes && (
-            <div>
-              <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>NOTE EXTRA</p>
-              <p style={{ ...fontBody, color: C.text }}>{intake.notes}</p>
-            </div>
-          )}
+          <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
+          <Field label="Peso iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
         </div>
+        <div style={{ marginTop: 12 }}>
+          <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>LIVELLO ATTIVITÀ</label>
+          <select
+            value={form.activityLevel}
+            onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+            style={{ width: "100%", padding: "10px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody }}
+          >
+            {ACTIVITY_LEVELS.map((a) => (
+              <option key={a.value} value={a.value}>{a.label}</option>
+            ))}
+          </select>
+        </div>
+        <Field label="Obiettivo principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} />
+        <Field label="Infortuni o limitazioni fisiche" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} />
+        <Field label="Note aggiuntive" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+        <button onClick={save} style={{ ...primaryBtn, marginTop: 16 }}>Salva Anamnesi</button>
       </div>
     );
   }
 
-  if (!isTrainer) {
-    return <EmptyState icon={<ClipboardList size={28} color={C.textDim} />} text="Anamnesi non ancora compilata dal tuo trainer." />;
-  }
-
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-      <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, marginBottom: 16 }}>Compila Anamnesi</h3>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
-          <select
-            value={form.sex}
-            onChange={(e) => setForm({ ...form, sex: e.target.value })}
-            style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14 }}
-          >
-            <option value="M">Maschio</option>
-            <option value="F">Femmina</option>
-          </select>
+    <div style={{ background: C.panel, borderRadius: 12, padding: 20, border: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>Scheda Anamnesi</h3>
+        {isTrainer && (
+          <button onClick={() => setEditing(true)} style={secondaryBtn}>
+            <Edit2 size={14} /> Modifica
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+        <div><span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>ALTEZZA:</span> <strong style={{ color: C.text }}>{intake.heightCm ? `${intake.heightCm} cm` : "-"}</strong></div>
+        <div><span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>PESO INIZIALE:</span> <strong style={{ color: C.text }}>{intake.startingWeight ? `${intake.startingWeight} kg` : "-"}</strong></div>
+      </div>
+
+      {metrics && (
+        <div style={{ background: C.panelHi, padding: 14, borderRadius: 8, marginBottom: 16, display: "flex", justifyContent: "space-around" }}>
+          <div><div style={{ ...fontMono, fontSize: 10, color: C.textDim }}>BMR METABOLISMO BASE</div><div style={{ ...fontDisplay, fontSize: 20, color: C.accent }}>{metrics.bmr} kcal</div></div>
+          <div><div style={{ ...fontMono, fontSize: 10, color: C.textDim }}>TDEE FABBISOGNO</div><div style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{metrics.tdee} kcal</div></div>
         </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
-        <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
-      </div>
+      )}
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO ATTIVITÀ</label>
-        <select
-          value={form.activityLevel}
-          onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
-          style={{ display: "block", width: "100%", marginTop: 6, padding: "10px 12px", background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, ...fontBody, fontSize: 14 }}
-        >
-          {ACTIVITY_LEVELS.map((a) => (
-            <option key={a.value} value={a.value}>{a.label}</option>
-          ))}
-        </select>
-      </div>
-
-      <Field label="Obiettivo Principale" value={form.goal} onChange={(v) => setForm({ ...form, goal: v })} />
-      <Field label="Infortuni / Limitazioni Fisiche" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} />
-      <Field label="Note aggiuntive" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
-
-      <button onClick={submit} style={primaryBtn}><Save size={16} /> Salva Anamnesi</button>
+      {intake.goal && <p style={{ ...fontBody, color: C.text, fontSize: 14 }}><strong>Obiettivo:</strong> {intake.goal}</p>}
+      {intake.injuries && <p style={{ ...fontBody, color: C.accent, fontSize: 14 }}><strong>Limitazioni/Infortuni:</strong> {intake.injuries}</p>}
+      {intake.notes && <p style={{ ...fontBody, color: C.textDim, fontSize: 14 }}><strong>Note:</strong> {intake.notes}</p>}
     </div>
   );
 }
 
-// ---------- Main Program Section Component ----------
+// ---------- Program section ----------
 function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, siblingClients, onSave }) {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [videoModalUrl, setVideoModalUrl] = useState(null);
   const [loadModalEx, setLoadModalEx] = useState(null);
 
   const days = program?.days || [];
-
-  const handleUpdateDays = (newDays) => {
-    onSave({ ...program, days: newDays });
-  };
+  const currentDay = days[activeDayIdx];
 
   const addDay = () => {
     const newDay = { id: uid(), label: `Giorno ${days.length + 1}`, weekdays: [], blocks: [] };
-    handleUpdateDays([...days, newDay]);
-    setActiveDayIdx(days.length);
+    onSave({ ...program, days: [...days, newDay] });
   };
 
-  const removeDay = (idx) => {
-    const updated = days.filter((_, i) => i !== idx);
-    handleUpdateDays(updated);
-    if (activeDayIdx >= updated.length) setActiveDayIdx(Math.max(0, updated.length - 1));
+  const addBlock = () => {
+    if (!currentDay) return;
+    const newBlock = {
+      id: uid(),
+      rounds: "3",
+      restBetweenExercises: "",
+      restAfterRound: "90s",
+      exercises: [{ id: uid(), name: "", reps: "10", note: "", videoUrl: "" }],
+    };
+    const updatedDays = [...days];
+    updatedDays[activeDayIdx] = { ...currentDay, blocks: [...currentDay.blocks, newBlock] };
+    onSave({ ...program, days: updatedDays });
   };
-
-  const currentDay = days[activeDayIdx];
 
   return (
     <div>
-      {/* Visualizzazione / Gestione Giorni */}
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
+      {/* Tab Giorni */}
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 10 }}>
         {days.map((d, idx) => (
           <button
             key={d.id}
             onClick={() => setActiveDayIdx(idx)}
             style={{
-              padding: "8px 14px", borderRadius: 8,
-              border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
-              background: activeDayIdx === idx ? C.accentSoft : C.panel,
-              color: activeDayIdx === idx ? C.accent : C.text,
-              ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap"
+              padding: "8px 14px", borderRadius: 8, border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
+              background: activeDayIdx === idx ? C.accentSoft : C.panel, color: activeDayIdx === idx ? C.accent : C.text,
+              ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0
             }}
           >
             {d.label}
           </button>
         ))}
         {isTrainer && (
-          <button onClick={addDay} style={{ ...secondaryBtn, whiteSpace: "nowrap" }}>
+          <button onClick={addDay} style={{ ...secondaryBtn, flexShrink: 0 }}>
             <Plus size={14} /> Giorno
           </button>
         )}
       </div>
 
-      {days.length === 0 ? (
-        <EmptyState icon={<Dumbbell size={28} color={C.textDim} />} text="Nessun giorno di allenamento creato." />
-      ) : currentDay ? (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <h3 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: 0 }}>{currentDay.label}</h3>
-            {isTrainer && (
-              <button onClick={() => removeDay(activeDayIdx)} style={{ ...iconBtn, color: C.accent }}>
-                <Trash2 size={18} />
-              </button>
-            )}
-          </div>
-
-          {/* Render Blocchi Esercizio */}
-          {(currentDay.blocks || []).map((block, bIdx) => (
-            <div key={block.id} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ ...fontMono, fontSize: 12, color: C.accent, fontWeight: 600 }}>BLOCCO #{bIdx + 1}</span>
-                <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>Giri/Serie: {block.rounds || "-"}</span>
+      {!currentDay ? (
+        <EmptyState icon={<Dumbbell size={28} color={C.textDim} />} text="Nessun giorno di allenamento inserito ancora." />
+      ) : (
+        <div style={{ marginTop: 14 }}>
+          {currentDay.blocks.map((block, bIdx) => (
+            <div key={block.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <span style={{ ...fontMono, fontSize: 12, color: C.accent }}>BLOCCO {bIdx + 1} · {block.rounds} SERIE</span>
+                {block.restAfterRound && <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>RECUPERO: {block.restAfterRound}</span>}
               </div>
-              {(block.exercises || []).map((ex) => (
-                <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderTop: `1px dashed ${C.border}` }}>
+
+              {block.exercises.map((ex) => (
+                <div key={ex.id} style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <span style={{ ...fontBody, color: C.text, fontWeight: 500 }}>{ex.name}</span>
-                    {ex.reps && <span style={{ ...fontMono, fontSize: 12, color: C.textDim, marginLeft: 8 }}>({ex.reps})</span>}
+                    <strong style={{ ...fontBody, color: C.text, fontSize: 15, display: "block" }}>{ex.name || "Esercizio senza nome"}</strong>
+                    <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>{ex.reps} rip. {ex.note && `· ${ex.note}`}</span>
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     {ex.videoUrl && (
                       <button onClick={() => setVideoModalUrl(ex.videoUrl)} style={iconBtn}>
-                        <PlayCircle size={16} color={C.accent} />
+                        <PlayCircle size={18} color={C.accent} />
                       </button>
                     )}
                     <button onClick={() => setLoadModalEx(ex.name)} style={iconBtn}>
-                      <TrendingUp size={16} color={C.positive} />
+                      <TrendingUp size={18} color={C.positive} />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           ))}
+
+          {isTrainer && (
+            <button onClick={addBlock} style={{ ...secondaryBtn, width: "100%", justifyContent: "center", marginTop: 10 }}>
+              <Plus size={16} /> Aggiungi Blocco / Esercizio
+            </button>
+          )}
         </div>
-      ) : null}
+      )}
 
       {videoModalUrl && <VideoModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
       {loadModalEx && <LoadModal exerciseName={loadModalEx} clientId={clientId} onClose={() => setLoadModalEx(null)} />}
@@ -1018,292 +979,265 @@ function ProgramSection({ program, isTrainer, clientId, clientName, trainerId, s
   );
 }
 
-// ---------- Progress Section Component ----------
+// ---------- Progress section ----------
 function ProgressSection({ entries, onAdd }) {
-  const [weight, setWeight] = useState("");
-  const [photo, setPhoto] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), weight: "", waist: "", photo: "" });
 
-  const handlePhotoUpload = async (e) => {
+  const handlePhoto = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    try {
+    if (file) {
       const resized = await resizeImage(file);
-      setPhoto(resized);
-    } catch (err) {
-      console.error(err);
+      setForm({ ...form, photo: resized });
     }
   };
 
-  const submit = async () => {
-    if (!weight && !photo) return;
-    setBusy(true);
-    await onAdd({
-      id: uid(),
-      date: new Date().toISOString().slice(0, 10),
-      weight: weight ? parseFloat(weight) : null,
-      photo,
-    });
-    setWeight("");
-    setPhoto(null);
-    setBusy(false);
+  const submit = () => {
+    if (!form.weight) return;
+    onAdd({ id: uid(), date: form.date, weight: parseFloat(form.weight), waist: form.waist, photo: form.photo });
+    setForm({ date: new Date().toISOString().slice(0, 10), weight: "", waist: "", photo: "" });
   };
 
-  const chartData = entries.filter((e) => e.weight).map((e) => ({ date: fmtDate(e.date), peso: e.weight }));
+  const chartData = entries.map((e) => ({ date: fmtDate(e.date), peso: e.weight }));
 
   return (
     <div>
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 20, color: C.text, marginBottom: 12 }}>Registra un nuovo progresso</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-          <Field label="Peso corporeo (kg)" type="number" value={weight} onChange={setWeight} />
-          <div>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>FOTO PROGRESSO</label>
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "block", marginTop: 6, color: C.textDim, fontSize: 12 }} />
-          </div>
+      <div style={{ background: C.panel, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, marginBottom: 20 }}>
+        <h4 style={{ ...fontDisplay, fontSize: 18, color: C.text, marginBottom: 12 }}>Nuovo Check Peso / Progressi</h4>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Field label="Data" type="date" value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
+          <Field label="Peso (kg)" type="number" value={form.weight} onChange={(v) => setForm({ ...form, weight: v })} />
         </div>
-        <button onClick={submit} disabled={busy} style={primaryBtn}>
-          {busy ? "Salvataggio..." : "Salva progresso"}
-        </button>
+        <Field label="Vita (cm) - Opzionale" type="number" value={form.waist} onChange={(v) => setForm({ ...form, waist: v })} />
+        
+        <div style={{ margin: "10px 0" }}>
+          <label style={{ ...secondaryBtn, cursor: "pointer", display: "inline-flex" }}>
+            <Camera size={16} /> Carica Foto Progressi
+            <input type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
+          </label>
+          {form.photo && <span style={{ ...fontBody, fontSize: 12, color: C.positive, marginLeft: 10 }}>Foto selezionata ✓</span>}
+        </div>
+
+        <button onClick={submit} style={primaryBtn}>Registra Progressi</button>
       </div>
 
-      {chartData.length > 0 && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-          <h4 style={{ ...fontDisplay, fontSize: 18, color: C.text, marginBottom: 12 }}>Andamento Peso</h4>
-          <div style={{ height: 180 }}>
+      {entries.length > 0 && (
+        <>
+          <div style={{ height: 200, marginBottom: 20 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid stroke={C.border} strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 11 }} />
-                <YAxis tick={{ fill: C.textDim, fontSize: 11 }} domain={["auto", "auto"]} />
+                <XAxis dataKey="date" tick={{ fill: C.textDim, fontSize: 10 }} />
+                <YAxis tick={{ fill: C.textDim, fontSize: 10 }} domain={["auto", "auto"]} />
                 <Tooltip contentStyle={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text }} />
                 <Line type="monotone" dataKey="peso" stroke={C.accent} strokeWidth={2} dot={{ r: 4 }} name="Peso (kg)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      )}
 
-      {/* Lista Progressi */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
-        {[...entries].reverse().map((e) => (
-          <div key={e.id} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12 }}>
-            <p style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{fmtDate(e.date)}</p>
-            {e.weight && <p style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: "4px 0" }}>{e.weight} kg</p>}
-            {e.photo ? (
-              <img src={e.photo} alt="Progresso" style={{ width: "100%", borderRadius: 6, marginTop: 6, objectFit: "cover" }} />
-            ) : (
-              <div style={{ height: 60, background: C.panelHi, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 6 }}>
-                <ImageOff size={18} color={C.textDim} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
+            {[...entries].reverse().map((e) => (
+              <div key={e.id} style={{ background: C.panel, padding: 10, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                {e.photo ? (
+                  <img src={e.photo} alt="Progressi" style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 6, marginBottom: 6 }} />
+                ) : (
+                  <div style={{ width: "100%", height: 120, background: C.panelHi, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
+                    <ImageOff size={20} color={C.textDim} />
+                  </div>
+                )}
+                <div style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{fmtDate(e.date)}</div>
+                <div style={{ ...fontBody, fontWeight: 700, color: C.text }}>{e.weight} kg</div>
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
 
-// ---------- Main App Root ----------
+// ---------- Main App Component ----------
 export default function App() {
-  const [screen, setScreen] = useState("welcome"); // welcome | setup | login | main
-  const [currentUser, setCurrentUser] = useState(null);
+  const [view, setView] = useState("welcome"); // 'welcome' | 'login' | 'setup' | 'client_register' | 'trainer' | 'client'
+  const [profile, setProfile] = useState(null);
   const [clients, setClients] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
-  const [loadingSession, setLoadingSession] = useState(true);
 
-  // Auto-restore session
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.user) {
-        const prof = await fetchProfile(data.session.user.id);
-        if (prof) {
-          setCurrentUser(prof);
-          setScreen("main");
-        }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUser(session.user.id);
       }
-      setLoadingSession(false);
-    })();
-  }, []);
-
-  // Sync clients when user is trainer
-  const refreshClients = useCallback(async () => {
-    if (currentUser?.role === "trainer") {
-      const list = await fetchClients(currentUser.id);
-      setClients(list);
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    refreshClients();
-  }, [refreshClients]);
-
-  const { data, error } = await supabaseTemp.auth.signUp({
-  email: username.trim(),
-  password: password,
-});
-
-    if (authErr) {
-      callback(mapAuthError(authErr));
-      return;
-    }
-
-    if (!authData?.user) {
-      callback("Errore durante la creazione del profilo.");
-      return;
-    }
-
-const { error: profErr } = await supabase.from("profiles").insert({
-  id: authData.user.id,
-  name: name,
-  username: username.trim(),
-  role: "client", // O 'trainer' in base al tipo di utente
-  created_by: coachId // L'ID del coach attualmente loggato
-});
-
-    if (profErr) {
-      callback("Errore durante il salvataggio del profilo.");
-      return;
-    }
-
-    const prof = await fetchProfile(authData.user.id);
-    setCurrentUser(prof);
-    setScreen("main");
-    callback(null);
-  };
-
-  const handleLogin = async ({ username, password }, callback) => {
-    // Login diretto senza aggiungere @misura.local
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: username.trim(),
-      password,
     });
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadUser(session.user.id);
+      } else {
+        setProfile(null);
+        setView("welcome");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUser = async (userId) => {
+    const prof = await fetchProfile(userId);
+    if (!prof) return;
+    setProfile(prof);
+
+    if (prof.role === "trainer") {
+      const list = await fetchClients(prof.id);
+      setClients(list);
+      setView("trainer");
+    } else {
+      setView("client");
+    }
+  };
+
+  // Login Handler
+  const handleLogin = async ({ username, password }, callback) => {
+    const email = username.includes("@") ? username : `${username}@app.local`;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      callback(mapAuthError(error));
+      return;
+    }
+    if (data?.user) {
+      await loadUser(data.user.id);
+      callback(null);
+    }
+  };
+
+  // Trainer Setup Handler
+  const handleTrainerSetup = async ({ name, username, password }, callback) => {
+    const email = username.includes("@") ? username : `${username}@app.local`;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      callback(mapAuthError(error));
+      return;
+    }
+    if (data?.user) {
+      await supabase.from("profiles").insert([{ id: data.user.id, name, username, role: "trainer" }]);
+      await loadUser(data.user.id);
+      callback(null);
+    }
+  };
+
+  // Client Self-Registration Handler (AUTONOMOUS REGISTRATION)
+  const handleClientRegister = async ({ name, username, password }, callback) => {
+    const email = username.includes("@") ? username : `${username}@app.local`;
+    
+    // Trova l'id del primo trainer nel sistema per collegare automaticamente il cliente
+    const { data: trainers } = await supabase.from("profiles").select("id").eq("role", "trainer").limit(1);
+    const trainerId = trainers && trainers.length > 0 ? trainers[0].id : null;
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
       callback(mapAuthError(error));
       return;
     }
 
-    const prof = await fetchProfile(data.user.id);
-    if (!prof) {
-      callback("Profilo utente non trovato.");
-      return;
-    }
+    if (data?.user) {
+      const { error: profErr } = await supabase.from("profiles").insert([{
+        id: data.user.id,
+        name: name.trim(),
+        username: username.trim(),
+        role: "client",
+        created_by: trainerId
+      }]);
 
-    setCurrentUser(prof);
-    setScreen("main");
-    callback(null);
+      if (profErr) {
+        callback(profErr.message);
+        return;
+      }
+
+      callback(null);
+    }
   };
 
+  // Delete Client
+  const handleDeleteClient = async (clientId) => {
+    await supabase.from("profiles").delete().eq("id", clientId);
+    if (profile) {
+      const list = await fetchClients(profile.id);
+      setClients(list);
+    }
+  };
+
+  // Logout Handler
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setCurrentUser(null);
+    setProfile(null);
     setSelectedClientId(null);
-    setScreen("welcome");
+    setView("welcome");
   };
 
-const handleAddClient = async ({ name, username, password }, callback) => {
-  try {
-    const res = await fetch("/api/create-client", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, username, password }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Errore durante la creazione del cliente");
-    }
-
-    await refreshClients();
-    callback(null);
-  } catch (err) {
-    callback(err.message);
-  }
-};
-
-  // 2. Crea la riga del profilo collegata al nuovo utente
-  if (authData?.user) {
-    const { error: profErr } = await supabase.from("profiles").insert({
-      id: authData.user.id,
-      name: name,
-      username: username.trim(),
-      role: "client",
-      created_by: trainer?.id || null
-    });
-
-    if (profErr) {
-      callback(profErr.message);
-      return;
-    }
-  }
-
-  // 3. Aggiorna la lista dei clienti in dashboard
-  await refreshClients();
-  callback(null);
-};
-
-  const handleDeleteClient = async (clientId) => {
-    const { error } = await supabase.from("profiles").delete().eq("id", clientId);
-    if (!error) {
-      setClients((prev) => prev.filter((c) => c.id !== clientId));
-      if (selectedClientId === clientId) setSelectedClientId(null);
-    }
-  };
-
-  if (loadingSession) {
+  // Render Logic
+  if (view === "welcome") {
     return (
-      <div style={wrapStyle}>
-        <FontImport />
-        <p style={{ ...fontBody, color: C.textDim }}>Caricamento in corso...</p>
-      </div>
+      <WelcomeScreen
+        onGoLogin={() => setView("login")}
+        onGoClientRegister={() => setView("client_register")}
+        onGoSetup={() => setView("setup")}
+      />
     );
   }
 
-  if (screen === "welcome") return <WelcomeScreen onGoLogin={() => setScreen("login")} onGoSetup={() => setScreen("setup")} />;
-  if (screen === "setup") return <SetupScreen onSubmit={handleSetup} onBack={() => setScreen("welcome")} />;
-  if (screen === "login") return <LoginScreen onSubmit={handleLogin} onBack={() => setScreen("welcome")} />;
+  if (view === "setup") {
+    return <SetupScreen onSubmit={handleTrainerSetup} onBack={() => setView("welcome")} />;
+  }
 
-  if (screen === "main" && currentUser) {
-    if (currentUser.role === "trainer") {
-      if (selectedClientId) {
-        const activeClient = clients.find((c) => c.id === selectedClientId);
-        if (!activeClient) return null;
-        return (
-          <ClientWorkspace
-            client={activeClient}
-            isTrainer={true}
-            viewerId={currentUser.id}
-            siblingClients={clients}
-            onBack={() => setSelectedClientId(null)}
-            onLogout={handleLogout}
-          />
-        );
-      }
-      return (
-        <TrainerDashboard
-          trainer={currentUser}
-          clients={clients}
-          onSelectClient={setSelectedClientId}
-          onAddClient={handleAddClient}
-          onDeleteClient={handleDeleteClient}
-          onLogout={handleLogout}
-        />
-      );
-    } else {
+  if (view === "client_register") {
+    return <ClientRegisterScreen onSubmit={handleClientRegister} onBack={() => setView("welcome")} />;
+  }
+
+  if (view === "login") {
+    return (
+      <LoginScreen
+        onSubmit={handleLogin}
+        onBack={() => setView("welcome")}
+        onGoRegister={() => setView("client_register")}
+      />
+    );
+  }
+
+  if (view === "trainer" && profile) {
+    if (selectedClientId) {
+      const selectedClient = clients.find((c) => c.id === selectedClientId);
       return (
         <ClientWorkspace
-          client={currentUser}
-          isTrainer={false}
-          viewerId={currentUser.id}
-          siblingClients={[]}
-          onBack={undefined}
+          client={selectedClient}
+          isTrainer={true}
+          viewerId={profile.id}
+          siblingClients={clients}
+          onBack={() => setSelectedClientId(null)}
           onLogout={handleLogout}
         />
       );
     }
+
+    return (
+      <TrainerDashboard
+        trainer={profile}
+        clients={clients}
+        onSelectClient={(id) => setSelectedClientId(id)}
+        onDeleteClient={handleDeleteClient}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (view === "client" && profile) {
+    return (
+      <ClientWorkspace
+        client={profile}
+        isTrainer={false}
+        viewerId={profile.id}
+        siblingClients={[]}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return null;
