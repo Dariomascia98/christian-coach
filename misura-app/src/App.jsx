@@ -1203,17 +1203,26 @@ const { error: profErr } = await supabase.from("profiles").insert({
     setScreen("welcome");
   };
 
- const handleAddClient = async ({ name, username, password }, callback) => {
-  // 1. Crea l'utente Auth usando l'istanza temporanea (così il Coach non viene disconnesso)
-  const { data: authData, error: authErr } = await supabaseTemp.auth.signUp({
-    email: username.trim(),
-    password: password,
-  });
+const handleAddClient = async ({ name, username, password }, callback) => {
+  try {
+    const res = await fetch("/api/create-client", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, username, password }),
+    });
 
-  if (authErr) {
-    callback(authErr.message);
-    return;
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Errore durante la creazione del cliente");
+    }
+
+    await refreshClients();
+    callback(null);
+  } catch (err) {
+    callback(err.message);
   }
+};
 
   // 2. Crea la riga del profilo collegata al nuovo utente
   if (authData?.user) {
