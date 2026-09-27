@@ -8,22 +8,18 @@ import {
 /* ============================================================
    NOTE IMPORTANTE SULLO SCHEMA DATABASE
    ============================================================
-   Ho ipotizzato questa struttura Supabase, adattala se diversa:
-
    - tabella "clients": id (uuid), trainer_id (uuid, FK auth.users),
      auth_user_id (uuid, FK auth.users, nullable finché il cliente
      non si registra), name (text), intake (jsonb)
    - tabella "programs": id, client_id (FK clients), days (jsonb)
    - tabella "progress_entries": id, client_id, date, weight, waist,
      chest, hips, notes, photo (url o base64)
-   - Il ruolo "trainer" è determinato da un campo "role" nei
-     user_metadata dell'utente Supabase Auth (impostato in fase di
-     creazione account, es. tramite api/create-client.js per il
-     service role, o manualmente dalla dashboard Supabase per te
-     stesso come trainer).
-
-   Se la tua struttura è diversa, dimmi i nomi reali delle tabelle
-   e colonne e adatto le query.
+   - Il ruolo "trainer" è determinato dal campo
+     user_metadata.role === "trainer" impostato via SQL su
+     auth.users.raw_user_meta_data. Chi non ha questo metadata
+     viene cercato nella tabella "clients" tramite auth_user_id;
+     se non trovato, è in stato "pending" (registrato ma non
+     ancora collegato dal trainer a nessun profilo cliente).
    ============================================================ */
 
 // --- Utility e Costanti Globali ---
@@ -165,8 +161,6 @@ function AuthScreen({ onLoggedIn }) {
         if (error) throw error;
         onLoggedIn(data.session);
       } else {
-        // Registrazione: usata di norma dal cliente invitato dal trainer,
-        // che imposta la propria password al primo accesso.
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (data.session) {
@@ -257,9 +251,6 @@ function TrainerDashboard({ session, onLogout }) {
     }
     setCreating(true);
     try {
-      // Chiama la funzione serverless (api/create-client.js) che usa la
-      // service_role key lato server per creare l'utente auth + la riga cliente.
-      // Adatta l'URL se il tuo endpoint è diverso.
       const res = await fetch('/api/create-client', {
         method: 'POST',
         headers: {
@@ -357,11 +348,9 @@ function TrainerDashboard({ session, onLogout }) {
 
 // ============================================================
 // WORKSPACE CLIENTE: anamnesi + programma + progressi
-// (usato sia dal trainer che vede un suo cliente, sia dal
-// cliente che vede se stesso)
 // ============================================================
 function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated }) {
-  const [tab, setTab] = useState("intake"); // intake | program | progress
+  const [tab, setTab] = useState("intake");
   const [program, setProgram] = useState(null);
   const [progressEntries, setProgressEntries] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -1016,20 +1005,18 @@ export function ProgressSection({ entries = [], onAdd }) {
 }
 
 // ============================================================
-// COMPONENTE APP PRINCIPALE (questo mancava: export default!)
+// COMPONENTE APP PRINCIPALE
 // ============================================================
 export default function App() {
-  const [session, setSession] = useState(undefined); // undefined = ancora in caricamento
-  const [role, setRole] = useState(null); // "trainer" | "client"
+  const [session, setSession] = useState(undefined);
+  const [role, setRole] = useState(null); // "trainer" | "client" | "pending"
   const [myClientRecord, setMyClientRecord] = useState(null);
 
   useEffect(() => {
-    // Recupera la sessione corrente all'avvio dell'app
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
     });
 
-    // Ascolta i cambi di stato (login, logout, refresh token)
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
     });
@@ -1045,9 +1032,20 @@ export default function App() {
       setMyClientRecord(null);
       return;
     }
-    // Determina il ruolo: se l'utente ha una riga in "clients" con
-    // auth_user_id = suo id, è un cliente; altrimenti è il trainer.
-    // Adatta questa logica al tuo schema reale se diverso.
+
+    // 1. Il ruolo trainer è deciso dal metadata dell'utente, impostato
+    //    manualmente via SQL su auth.users.raw_user_meta_data, non dal
+    //    fatto di "non essere trovato come cliente".
+    const isTrainer = session.user.user_metadata?.role === "trainer";
+
+    if (isTrainer) {
+      setRole("trainer");
+      setMyClientRecord(null);
+      return;
+    }
+
+    // 2. Altrimenti cerchiamo se questo utente è collegato a un profilo
+    //    cliente esistente (creato dal trainer tramite "Nuovo Cliente").
     (async () => {
       const { data, error } = await supabase
         .from('clients')
@@ -1061,7 +1059,10 @@ export default function App() {
         setRole("client");
         setMyClientRecord(data);
       } else {
-        setRole("trainer");
+        // 3. Utente autenticato ma non trainer e non ancora collegato
+        //    a nessun cliente: stato di attesa.
+        setRole("pending");
+        setMyClientRecord(null);
       }
     })();
   }, [session]);
@@ -1070,7 +1071,6 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  // Stato di caricamento iniziale: mostra qualcosa invece di uno schermo nero
   if (session === undefined) {
     return (
       <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1091,11 +1091,24 @@ export default function App() {
     );
   }
 
+  if (role === "pending") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 16 }}>
+        <p style={{ ...fontBody, color: C.textDim, textAlign: "center", maxWidth: 400 }}>
+          Il tuo account è stato creato, ma non è ancora collegato a nessun profilo cliente.<br />
+          Contatta il tuo trainer per completare l'attivazione.
+        </p>
+        <button onClick={handleLogout} style={secondaryBtn}>
+          <LogOut size={15} /> Esci
+        </button>
+      </div>
+    );
+  }
+
   if (role === "trainer") {
     return <TrainerDashboard session={session} onLogout={handleLogout} />;
   }
 
-  // role === "client"
   return (
     <ClientWorkspace
       client={myClientRecord}
