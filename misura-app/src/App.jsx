@@ -725,7 +725,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
             </button>
           )}
         </div>
-      ) : (
       ) : currentDay ? (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
