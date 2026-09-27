@@ -707,18 +707,25 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       )}
 
-      {days.length === 0 ? (
+     {days.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <Dumbbell size={28} color={C.textDim} style={{ marginBottom: 8 }} />
           <p style={{ ...fontBody, margin: 0 }}>
-            {isTrainer ? "Nessun giorno di allenamento ancora creato. Clicca su Modifica per iniziare." : "Nessun programma ancora assegnato dal tuo trainer."}
+            {isTrainer ? "Nessun giorno di allenamento ancora creato." : "Nessun programma ancora assegnato dal tuo trainer."}
           </p>
-          {isTrainer && !isEditing && (
-            <button onClick={() => setIsEditing(true)} style={{ ...primaryBtn, marginTop: 12 }}>
-              <Plus size={16} /> Inizia a Creare Programma
+          {isTrainer && (
+            <button 
+              onClick={() => {
+                if (!isEditing) setIsEditing(true);
+                addDay();
+              }} 
+              style={{ ...primaryBtn, marginTop: 12 }}
+            >
+              <Plus size={16} /> Aggiungi Primo Giorno
             </button>
           )}
         </div>
+      ) : (
       ) : currentDay ? (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
