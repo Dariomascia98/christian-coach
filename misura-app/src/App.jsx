@@ -10,16 +10,15 @@ import {
    ============================================================
    - tabella "clients": id (uuid), trainer_id (uuid, FK auth.users),
      auth_user_id (uuid, FK auth.users, nullable finché il cliente
-     non si registra), name (text), intake (jsonb)
+     non si registra), name (text), email (text), intake (jsonb)
    - tabella "programs": id, client_id (FK clients), days (jsonb)
    - tabella "progress_entries": id, client_id, date, weight, waist,
      chest, hips, notes, photo (url o base64)
    - Il ruolo "trainer" è determinato dal campo
      user_metadata.role === "trainer" impostato via SQL su
      auth.users.raw_user_meta_data. Chi non ha questo metadata
-     viene cercato nella tabella "clients" tramite auth_user_id;
-     se non trovato, è in stato "pending" (registrato ma non
-     ancora collegato dal trainer a nessun profilo cliente).
+     viene cercato nella tabella "clients" tramite auth_user_id o email;
+     se non trovato, è in stato "pending".
    ============================================================ */
 
 // --- Utility e Costanti Globali ---
@@ -141,7 +140,7 @@ function updateExerciseInBlock(block, exIdx, updater) {
 // SCHERMATA DI LOGIN / REGISTRAZIONE
 // ============================================================
 function AuthScreen({ onLoggedIn }) {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -313,9 +312,9 @@ function TrainerDashboard({ session, onLogout }) {
               <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
             </div>
             <div style={{ marginBottom: 14 }}>
-  <Field label="Password temporanea (opzionale)" type="text" value={newClientPassword} onChange={setNewClientPassword} />
-  <span style={{ fontSize: 11, color: C.textDim, marginTop: 4, display: "block" }}>Se la lasci vuota, verrà generata automaticamente dal server.</span>
-</div>
+              <Field label="Password temporanea (opzionale)" type="text" value={newClientPassword} onChange={setNewClientPassword} />
+              <span style={{ fontSize: 11, color: C.textDim, marginTop: 4, display: "block" }}>Se la lasci vuota, verrà generata automaticamente dal server.</span>
+            </div>
             {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{createError}</p>}
             <button type="submit" disabled={creating} style={{ ...primaryBtn, opacity: creating ? 0.7 : 1 }}>
               {creating ? "Creazione..." : "Crea Cliente"}
@@ -707,7 +706,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       )}
 
-     {days.length === 0 ? (
+      {days.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <Dumbbell size={28} color={C.textDim} style={{ marginBottom: 8 }} />
           <p style={{ ...fontBody, margin: 0 }}>
@@ -1018,7 +1017,7 @@ export function ProgressSection({ entries = [], onAdd }) {
 }
 
 // ============================================================
-// COMPONENTE APP PRINCIPALE
+// COMPONENTE APP PRINCIPALE (Con Auto-Collegamento Email)
 // ============================================================
 export default function App() {
   const [session, setSession] = useState(undefined);
@@ -1046,9 +1045,6 @@ export default function App() {
       return;
     }
 
-    // 1. Il ruolo trainer è deciso dal metadata dell'utente, impostato
-    //    manualmente via SQL su auth.users.raw_user_meta_data, non dal
-    //    fatto di "non essere trovato come cliente".
     const isTrainer = session.user.user_metadata?.role === "trainer";
 
     if (isTrainer) {
@@ -1057,23 +1053,46 @@ export default function App() {
       return;
     }
 
-    // 2. Altrimenti cerchiamo se questo utente è collegato a un profilo
-    //    cliente esistente (creato dal trainer tramite "Nuovo Cliente").
+    // Funzione asincrona per determinare o auto-collegare il cliente
     (async () => {
-      const { data, error } = await supabase
+      // 1. Cerca prima tramite auth_user_id
+      let { data, error } = await supabase
         .from('clients')
         .select('*')
         .eq('auth_user_id', session.user.id)
         .maybeSingle();
+
       if (error) {
-        console.error("Errore nel determinare il ruolo utente:", error);
+        console.error("Errore nel recupero del cliente tramite auth_user_id:", error);
       }
+
+      // 2. Se non lo trova, prova a collegarlo automaticamente tramite l'EMAIL del cliente
+      if (!data) {
+        const userEmail = session.user.email;
+        const { data: clientByEmail, error: emailError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('email', userEmail)
+          .maybeSingle();
+
+        if (!emailError && clientByEmail) {
+          const { data: updatedData, error: updateError } = await supabase
+            .from('clients')
+            .update({ auth_user_id: session.user.id })
+            .eq('id', clientByEmail.id)
+            .select()
+            .single();
+
+          if (!updateError && updatedData) {
+            data = updatedData;
+          }
+        }
+      }
+
       if (data) {
         setRole("client");
         setMyClientRecord(data);
       } else {
-        // 3. Utente autenticato ma non trainer e non ancora collegato
-        //    a nessun cliente: stato di attesa.
         setRole("pending");
         setMyClientRecord(null);
       }
@@ -1106,10 +1125,9 @@ export default function App() {
 
   if (role === "pending") {
     return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 16 }}>
-        <p style={{ ...fontBody, color: C.textDim, textAlign: "center", maxWidth: 400 }}>
-          Il tuo account è stato creato, ma non è ancora collegato a nessun profilo cliente.<br />
-          Contatta il tuo trainer per completare l'attivazione.
+      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 16, textAlign: "center" }}>
+        <p style={{ ...fontBody, color: C.textDim, maxWidth: 400 }}>
+          Il tuo account è stato creato, ma non è ancora associato a nessuna email cliente inserita dal trainer. Assicurati che il trainer abbia aggiunto il tuo indirizzo email esatto nella lista clienti.
         </p>
         <button onClick={handleLogout} style={secondaryBtn}>
           <LogOut size={15} /> Esci
