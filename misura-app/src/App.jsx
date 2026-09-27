@@ -222,6 +222,7 @@ function TrainerDashboard({ session, onLogout }) {
   const [showNewClient, setShowNewClient] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientPassword, setNewClientPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -257,12 +258,14 @@ function TrainerDashboard({ session, onLogout }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ name: newClientName, email: newClientEmail })
+        body: JSON.stringify({ name: newClientName, email: newClientEmail, password: newClientPassword })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result?.error || "Errore nella creazione del cliente.");
+      alert(`Cliente creato con successo!\nPassword: ${result.passwordUsed || 'Generata automaticamente'}`);
       setNewClientName("");
       setNewClientEmail("");
+      setNewClientPassword("");
       setShowNewClient(false);
       await loadClients();
     } catch (err) {
@@ -309,6 +312,10 @@ function TrainerDashboard({ session, onLogout }) {
               <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
               <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
             </div>
+            <div style={{ marginBottom: 14 }}>
+  <Field label="Password temporanea (opzionale)" type="text" value={newClientPassword} onChange={setNewClientPassword} />
+  <span style={{ fontSize: 11, color: C.textDim, marginTop: 4, display: "block" }}>Se la lasci vuota, verrà generata automaticamente dal server.</span>
+</div>
             {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{createError}</p>}
             <button type="submit" disabled={creating} style={{ ...primaryBtn, opacity: creating ? 0.7 : 1 }}>
               {creating ? "Creazione..." : "Crea Cliente"}
