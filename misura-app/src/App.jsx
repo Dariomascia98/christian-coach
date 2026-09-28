@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import {
   Save, Edit2, Check, Printer, Copy, Plus, Trash2,
@@ -385,12 +385,9 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
     if (onClientUpdated) onClientUpdated();
   };
 
-  const handleSaveProgram = async (newProgram) => {
+  // Ottimizzato: il salvataggio API effettivo è gestito in modo debounced da ProgramSection
+  const handleSaveProgram = (newProgram) => {
     setProgram(newProgram);
-    const { error } = await supabase
-      .from('programs')
-      .upsert({ client_id: client.id, days: newProgram.days }, { onConflict: 'client_id' });
-    if (error) console.error("Errore nel salvataggio del programma:", error);
   };
 
   const handleAddProgressEntry = async (entry) => {
@@ -599,6 +596,8 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(""); // "saving" | "saved" | "error"
+  
+  const saveTimeoutRef = useRef(null); // Ref per la gestione del debounce salvataggio API
 
   // Stati per la Modale della Libreria Esercizi
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
@@ -609,23 +608,37 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
 
-  const handleUpdateProgram = async (newDays) => {
+  // Funzione di salvataggio ritardato (debounced) per evitare richieste infinite al DB
+  const handleUpdateProgram = (newDays) => {
     const updatedProgram = { ...safeProgram, days: newDays };
-    if (onSave) onSave(updatedProgram);
+    if (onSave) onSave(updatedProgram); // Aggiorna istantaneamente la UI
 
-    // Salvataggio diretto su Supabase con feedback visivo
     setSaveStatus("saving");
-    const { error } = await supabase
-      .from('programs')
-      .upsert({ client_id: clientId, days: newDays }, { onConflict: 'client_id' });
 
-    if (error) {
-      console.error("Errore dettagliato Supabase:", error);
-      setSaveStatus("error");
-    } else {
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus(""), 2500);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const payload = { client_id: clientId, days: newDays };
+      
+      // Inclusione dell'ID se esiste, assicura la robustezza in caso i vincoli RLS non siano settati bene
+      if (safeProgram.id) {
+        payload.id = safeProgram.id;
+      }
+
+      const { error } = await supabase
+        .from('programs')
+        .upsert(payload, { onConflict: 'client_id' });
+
+      if (error) {
+        console.error("Errore dettagliato Supabase:", error);
+        setSaveStatus("error");
+      } else {
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus(""), 2500);
+      }
+    }, 1000); // 1 secondo di pausa dopo che l'utente smette di digitare
   };
 
   const patchDay = (dayIdx, updater) => handleUpdateProgram(updateDays(days, dayIdx, updater));
@@ -712,9 +725,9 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
         </h3>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {saveStatus === "saving" && <span style={{ fontSize: 12, color: C.textDim }}>Salvataggio...</span>}
+          {saveStatus === "saving" && <span style={{ fontSize: 12, color: C.textDim }}>Salvataggio in corso...</span>}
           {saveStatus === "saved" && <span style={{ fontSize: 12, color: C.positive, fontWeight: 600 }}>✓ Salvato</span>}
-          {saveStatus === "error" && <span style={{ fontSize: 12, color: C.danger, fontWeight: 600 }}>✕ Errore salvataggio</span>}
+          {saveStatus === "error" && <span style={{ fontSize: 12, color: C.danger, fontWeight: 600 }}>✕ Errore</span>}
 
           <button onClick={() => window.print()} style={secondaryBtn} title="Stampa scheda">
             <Printer size={15} /> Stampa
