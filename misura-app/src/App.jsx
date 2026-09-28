@@ -730,7 +730,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       ) : currentDay ? (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-          {/* Intestazione del Giorno */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8 }}>
             {isEditing ? (
               <input
@@ -748,10 +747,33 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
             )}
           </div>
 
-          {/* Lista Continua dei Blocchi ed Esercizi */}
+          {isEditing && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {WEEKDAYS.map((w) => {
+                const active = (currentDay.weekdays || []).includes(w.code);
+                return (
+                  <button
+                    key={w.code}
+                    onClick={() => patchDay(activeDayIdx, (day) => {
+                      const curWd = day.weekdays || [];
+                      return { ...day, weekdays: active ? curWd.filter((c) => c !== w.code) : [...curWd, w.code] };
+                    })}
+                    style={{
+                      padding: "4px 8px", borderRadius: 6, fontSize: 11, ...fontMono, cursor: "pointer",
+                      border: `1px solid ${active ? C.accent : C.border}`,
+                      background: active ? C.accentSoft : C.panelHi,
+                      color: active ? C.accent : C.textDim
+                    }}
+                  >
+                    {w.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {(currentDay.blocks || []).map((block, bIdx) => (
             <div key={block.id || bIdx} style={{ marginBottom: 14 }}>
-              {/* Intestazione sottile del blocco (senza box grigio pesante) */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6 }}>
                 <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1} (Serie: {block.rounds} — Recupero: {block.restAfterRound || "—"})</span>
                 {isEditing && (
@@ -761,7 +783,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                 )}
               </div>
 
-              {/* Elenco lineare degli esercizi */}
               <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 4 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
                   <div key={ex.id || exIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px", borderBottom: `1px dashed ${C.border}` }}>
