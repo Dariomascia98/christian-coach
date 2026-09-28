@@ -626,10 +626,9 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       if (safeProgram.id) {
         payload.id = safeProgram.id;
       }
-
-      const { error } = await supabase
-        .from('programs')
-        .upsert(payload, { onConflict: 'client_id' });
+const { error } = await supabase
+  .from("programs")
+  .upsert(D); // <-- Rimuovendo l'oggetto di opzioni, Supabase eseguirà il salvataggio basandosi sulla chiave primaria (id)
 
       if (error) {
         console.error("Errore dettagliato Supabase:", error);
