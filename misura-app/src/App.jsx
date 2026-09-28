@@ -405,7 +405,8 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
     }
     setProgressEntries((prev) => [...prev, entry]);
   };
-return (
+
+  return (
     <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -594,122 +595,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Program Section ----------
-export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
-  const safeProgram = program || {};
-  const [activeDayIdx, setActiveDayIdx] = useState(0);
-  const [activeVideoUrl, setActiveVideoUrl] = useState(null);
-  const [activeLoadExercise, setActiveLoadExercise] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-
-  const days = safeProgram.days || [];
-  const currentDay = days[activeDayIdx] || null;
-
-  const handleUpdateProgram = (newDays) => {
-    if (onSave) onSave({ ...safeProgram, days: newDays });
-  };
-
-  const patchDay = (dayIdx, updater) => handleUpdateProgram(updateDays(days, dayIdx, updater));
-  const patchBlock = (dayIdx, blockIdx, updater) => patchDay(dayIdx, (day) => updateBlockInDay(day, blockIdx, updater));
-  const patchExercise = (dayIdx, blockIdx, exIdx, updater) => patchBlock(dayIdx, blockIdx, (block) => updateExerciseInBlock(block, exIdx, updater));
-
-  const addDay = () => {
-    const newDay = { id: uid(), label: `GIORNO ${days.length + 1}`, weekdays: [], blocks: [] };
-    const updated = [...days, newDay];
-    handleUpdateProgram(updated);
-    setActiveDayIdx(updated.length - 1);
-  };
-
-  const deleteDay = (idx) => {
-    if (!window.confirm("Sei sicuro di voler eliminare questa giornata di allenamento?")) return;
-    const updated = days.filter((_, i) => i !== idx);
-    handleUpdateProgram(updated);
-    if (activeDayIdx >= updated.length) setActiveDayIdx(Math.max(0, updated.length - 1));
-  };
-
-  const addBlock = (dayIdx) => {
-    const newBlock = { id: uid(), rounds: "3", restBetweenExercises: "", restAfterRound: "90''", exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }] };
-    patchDay(dayIdx, (day) => ({ ...day, blocks: [...(day.blocks || []), newBlock] }));
-  };
-
-  const deleteBlock = (dayIdx, blockIdx) => {
-    patchDay(dayIdx, (day) => ({ ...day, blocks: day.blocks.filter((_, i) => i !== blockIdx) }));
-  };
-
-  const addExercise = (dayIdx, blockIdx) => {
-    const newEx = { id: uid(), name: "", reps: "10", note: "", videoUrl: "" };
-    patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: [...block.exercises, newEx] }));
-  };
-
-  const deleteExercise = (dayIdx, blockIdx, exIdx) => {
-    patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: block.exercises.filter((_, i) => i !== exIdx) }));
-  };
-
-  const copyFromClient = async (sourceClientId) => {
-    if (!sourceClientId) return;
-    const p = await fetchProgram(sourceClientId);
-    if (p && p.days) {
-      if (window.confirm("Sostituire il programma corrente con quello selezionato?")) {
-        handleUpdateProgram(p.days);
-      }
-    }
-  };
-
-  return (
-    <div>
-      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>
-          {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
-        </h3>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={() => window.print()} style={secondaryBtn} title="Stampa scheda">
-            <Printer size={15} /> Stampa
-          </button>
-          {isTrainer && (
-            <button onClick={() => setIsEditing(!isEditing)} style={{ ...secondaryBtn, borderColor: isEditing ? C.accent : C.border, color: isEditing ? C.accent : C.text }}>
-              {isEditing ? <Check size={15} /> : <Edit2 size={15} />} {isEditing ? "Fine Modifica" : "Modifica"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {isTrainer && isEditing && (siblingClients || []).length > 0 && (
-        <div className="no-print" style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-          <Copy size={16} color={C.accent} />
-          <span style={{ ...fontBody, fontSize: 13, color: C.textDim }}>Copia programma da:</span>
-          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 10px", borderRadius: 6, fontSize: 13 }}>
-            <option value="" disabled>Seleziona cliente...</option>
-            {siblingClients.filter((c) => c.id !== clientId).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-        </div>
-      )}
-
-      {days.length > 0 && (
-        <div className="no-print" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
-          {days.map((day, idx) => (
-            <button
-              key={day.id || idx}
-              onClick={() => setActiveDayIdx(idx)}
-              style={{
-                padding: "8px 14px", borderRadius: 8,
-                background: activeDayIdx === idx ? C.panelHi : C.panel,
-                border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
-                color: activeDayIdx === idx ? C.text : C.textDim,
-                ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap"
-              }}
-            >
-              {day.label || `Giorno ${idx + 1}`}
-            </button>
-          ))}
-          {isTrainer && isEditing && (
-            <button onClick={addDay} style={{ ...secondaryBtn, padding: "8px 12px" }}>
-              <Plus size={15} /> Giorno
-            </button>
-          )}
-        </div>
-      )}
-
-   // ---------- Program Section ----------
+// ---------- Program Section (Foglio continuo) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
@@ -945,41 +831,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       ) : null}
 
-      {activeVideoUrl && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 600, padding: 16, position: "relative" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text }}>Video Dimostrativo</span>
-              <button onClick={() => setActiveVideoUrl(null)} style={iconBtn}><X size={20} color={C.text} /></button>
-            </div>
-            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
-              <iframe
-                src={activeVideoUrl.replace("watch?v=", "embed/")}
-                title="Video demo"
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none", borderRadius: 8 }}
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeLoadExercise && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 420, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text }}>Carichi — {activeLoadExercise}</span>
-              <button onClick={() => setActiveLoadExercise(null)} style={iconBtn}><X size={20} color={C.text} /></button>
-            </div>
-            <p style={{ ...fontBody, fontSize: 13, color: C.textDim }}>
-              Funzione in arrivo: qui potrai registrare i carichi (kg/ripetizioni) per questo esercizio nel tempo.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
       {activeVideoUrl && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 600, padding: 16, position: "relative" }}>
@@ -1300,7 +1151,7 @@ export default function App() {
       client={myClientRecord}
       isTrainer={false}
       onBack={() => {}}
-onLogout={handleLogout}
+      onLogout={handleLogout}
     />
   );
 }
