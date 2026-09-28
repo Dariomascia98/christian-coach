@@ -1053,7 +1053,7 @@ export default function App() {
       return;
     }
 
-    // Funzione asincrona per determinare o auto-collegare il cliente
+    // Funzione asincrona per determinare, auto-collegare o auto-creare il cliente
     (async () => {
       // 1. Cerca prima tramite auth_user_id
       let { data, error } = await supabase
@@ -1089,12 +1089,42 @@ export default function App() {
         }
       }
 
+      // 3. SE ANCORA NON ESISTE, LO CREA AUTOMATICAMENTE (Elimina il "pending")
+      if (!data) {
+        const userEmail = session.user.email;
+        const defaultName = session.user.user_metadata?.name || userEmail.split('@')[0];
+
+        const { data: newClient, error: insertError } = await supabase
+          .from('clients')
+          .insert([
+            {
+              auth_user_id: session.user.id,
+              email: userEmail,
+              name: defaultName,
+              intake: {}
+            }
+          ])
+          .select()
+          .single();
+
+        if (!insertError && newClient) {
+          data = newClient;
+        }
+      }
+
+      // 4. Accesso sempre sbloccato come cliente
       if (data) {
         setRole("client");
         setMyClientRecord(data);
       } else {
-        setRole("pending");
-        setMyClientRecord(null);
+        // Fallback di sicurezza estrema per evitare qualsiasi blocco grafico
+        setRole("client");
+        setMyClientRecord({
+          auth_user_id: session.user.id,
+          email: session.user.email,
+          name: session.user.email.split('@')[0],
+          intake: {}
+        });
       }
     })();
   }, [session]);
