@@ -587,7 +587,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Program Section (Con indicatore visivo di salvataggio) ----------
+// ---------- Program Section (Aggiornato con salvataggio sicuro e automatico) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
@@ -596,21 +596,27 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(""); // "saving" | "saved" | "error"
   
-  const saveTimeoutRef = useRef(null); // Ref per la gestione del debounce salvataggio API
+  const saveTimeoutRef = useRef(null);
 
   // Stati per la Modale della Libreria Esercizi
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   const [exerciseList, setExerciseList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [targetExForModal, setTargetExForModal] = useState(null); // { bIdx, exIdx }
+  const [targetExForModal, setTargetExForModal] = useState(null);
 
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
 
-  // Funzione di salvataggio ritardato (debounced) per evitare richieste infinite al DB
+  // Funzione di salvataggio sicuro con controllo client_id e onConflict
   const handleUpdateProgram = (newDays) => {
+    if (!clientId) {
+      console.error("Errore: Impossibile salvare, ID cliente mancante.");
+      setSaveStatus("error");
+      return;
+    }
+
     const updatedProgram = { ...safeProgram, days: newDays };
-    if (onSave) onSave(updatedProgram); // Aggiorna istantaneamente la UI
+    if (onSave) onSave(updatedProgram);
 
     setSaveStatus("saving");
 
@@ -621,15 +627,13 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
     saveTimeoutRef.current = setTimeout(async () => {
       const payload = { client_id: clientId, days: newDays };
       
-      // Inclusione dell'ID se esiste, assicura la robustezza in caso i vincoli RLS non siano settati bene
       if (safeProgram.id) {
         payload.id = safeProgram.id;
       }
 
-      // CORRETTO: Passiamo "payload" invece di "D"
       const { error } = await supabase
         .from("programs")
-        .upsert(payload);
+        .upsert(payload, { onConflict: 'client_id' });
 
       if (error) {
         console.error("Errore dettagliato Supabase:", error);
@@ -638,7 +642,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus(""), 2500);
       }
-    }, 1000); // 1 secondo di pausa dopo che l'utente smette di digitare
+    }, 1000);
   };
 
   const patchDay = (dayIdx, updater) => handleUpdateProgram(updateDays(days, dayIdx, updater));
@@ -680,7 +684,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
     patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: block.exercises.filter((_, i) => i !== exIdx) }));
   };
 
-  // Funzioni per la Libreria Esercizi da Supabase
   const openExerciseLibrary = async (bIdx, exIdx) => {
     setTargetExForModal({ bIdx, exIdx });
     const { data, error } = await supabase
