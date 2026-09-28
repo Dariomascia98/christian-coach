@@ -360,7 +360,7 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
   const [program, setProgram] = useState(null);
   const [progressEntries, setProgressEntries] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
-  
+
   useEffect(() => {
     let active = true;
     async function load() {
@@ -595,7 +595,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Program Section (Foglio continuo) ----------
+// ---------- Program Section (Foglio continuo con parametri per singolo esercizio) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
@@ -629,7 +629,10 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   };
 
   const addBlock = (dayIdx) => {
-    const newBlock = { id: uid(), rounds: "3", restBetweenExercises: "", restAfterRound: "90''", exercises: [{ id: uid(), name: "", reps: "10-12", note: "", videoUrl: "" }] };
+    const newBlock = { 
+      id: uid(), 
+      exercises: [{ id: uid(), name: "", sets: "3", reps: "10-12", rest: "90''", note: "", videoUrl: "" }] 
+    };
     patchDay(dayIdx, (day) => ({ ...day, blocks: [...(day.blocks || []), newBlock] }));
   };
 
@@ -638,7 +641,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   };
 
   const addExercise = (dayIdx, blockIdx) => {
-    const newEx = { id: uid(), name: "", reps: "10", note: "", videoUrl: "" };
+    const newEx = { id: uid(), name: "", sets: "3", reps: "10", rest: "90''", note: "", videoUrl: "" };
     patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: [...block.exercises, newEx] }));
   };
 
@@ -775,7 +778,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           {(currentDay.blocks || []).map((block, bIdx) => (
             <div key={block.id || bIdx} style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6 }}>
-                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1} (Serie: {block.rounds} — Recupero: {block.restAfterRound || "—"})</span>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1}</span>
                 {isEditing && (
                   <button onClick={() => deleteBlock(activeDayIdx, bIdx)} style={iconBtn} title="Elimina blocco">
                     <Trash2 size={14} color={C.danger} />
@@ -783,18 +786,39 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                 )}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 4 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 4 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px", borderBottom: `1px dashed ${C.border}` }}>
+                  <div key={ex.id || exIdx} style={{ padding: "6px 8px", borderBottom: `1px dashed ${C.border}` }}>
                     {isEditing ? (
-                      <div style={{ display: "flex", gap: 6, width: "100%", flexWrap: "wrap" }}>
-                        <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
-                        <input placeholder="Ripetizioni" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
-                        <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={14} color={C.danger} /></button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", gap: 6, width: "100%", alignItems: "center", flexWrap: "wrap" }}>
+                          <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
+                          
+                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>SERIE:</span>
+                            <input placeholder="3" value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: 40, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>RIP:</span>
+                            <input placeholder="10-12" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ width: 55, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>REC:</span>
+                            <input placeholder="90''" value={ex.rest || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: e.target.value }))} style={{ width: 50, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
+                          </div>
+
+                          <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={14} color={C.danger} /></button>
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <input placeholder="Link Video YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 11 }} />
+                          <input placeholder="Note / Istruzioni" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 11 }} />
+                        </div>
                       </div>
                     ) : (
-                      <>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
                           <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13 }}>{ex.name || "Esercizio"}</span>
                           {ex.videoUrl && (
                             <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video">
@@ -803,13 +827,15 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                           )}
                           {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim }}>({ex.note})</span>}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ ...fontMono, fontSize: 12, color: C.positive, fontWeight: 600 }}>{ex.reps} rip</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14, ...fontMono, fontSize: 12 }}>
+                          <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
+                          <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
+                          <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
                           <button onClick={() => setActiveLoadExercise(ex.name)} style={{ ...secondaryBtn, padding: "4px 8px", fontSize: 11 }}>
                             <Dumbbell size={12} /> Carichi
                           </button>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 ))}
