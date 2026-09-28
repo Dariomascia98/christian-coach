@@ -591,13 +591,14 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Program Section (Foglio continuo con parametri per singolo esercizio + Libreria Supabase) ----------
+// ---------- Program Section (Con indicatore visivo di salvataggio) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeVideoUrl, setActiveVideoUrl] = useState(null);
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(""); // "saving" | "saved" | "error"
 
   // Stati per la Modale della Libreria Esercizi
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
@@ -608,8 +609,23 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
 
-  const handleUpdateProgram = (newDays) => {
-    if (onSave) onSave({ ...safeProgram, days: newDays });
+  const handleUpdateProgram = async (newDays) => {
+    const updatedProgram = { ...safeProgram, days: newDays };
+    if (onSave) onSave(updatedProgram);
+
+    // Salvataggio diretto su Supabase con feedback visivo
+    setSaveStatus("saving");
+    const { error } = await supabase
+      .from('programs')
+      .upsert({ client_id: clientId, days: newDays }, { onConflict: 'client_id' });
+
+    if (error) {
+      console.error("Errore dettagliato Supabase:", error);
+      setSaveStatus("error");
+    } else {
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus(""), 2500);
+    }
   };
 
   const patchDay = (dayIdx, updater) => handleUpdateProgram(updateDays(days, dayIdx, updater));
@@ -696,6 +712,10 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
         </h3>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {saveStatus === "saving" && <span style={{ fontSize: 12, color: C.textDim }}>Salvataggio...</span>}
+          {saveStatus === "saved" && <span style={{ fontSize: 12, color: C.positive, fontWeight: 600 }}>✓ Salvato</span>}
+          {saveStatus === "error" && <span style={{ fontSize: 12, color: C.danger, fontWeight: 600 }}>✕ Errore salvataggio</span>}
+
           <button onClick={() => window.print()} style={secondaryBtn} title="Stampa scheda">
             <Printer size={15} /> Stampa
           </button>
@@ -824,7 +844,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                         <div style={{ display: "flex", gap: 6, width: "100%", alignItems: "center", flexWrap: "wrap" }}>
                           <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
                           
-                          {/* Pulsante per aprire la libreria esercizi */}
                           <button 
                             type="button"
                             onClick={() => openExerciseLibrary(bIdx, exIdx)} 
