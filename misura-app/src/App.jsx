@@ -385,7 +385,6 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
     if (onClientUpdated) onClientUpdated();
   };
 
-  // Ottimizzato: il salvataggio API effettivo è gestito in modo debounced da ProgramSection
   const handleSaveProgram = (newProgram) => {
     setProgram(newProgram);
   };
@@ -626,9 +625,11 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       if (safeProgram.id) {
         payload.id = safeProgram.id;
       }
-const { error } = await supabase
-  .from("programs")
-  .upsert(D); // <-- Rimuovendo l'oggetto di opzioni, Supabase eseguirà il salvataggio basandosi sulla chiave primaria (id)
+
+      // CORRETTO: Passiamo "payload" invece di "D"
+      const { error } = await supabase
+        .from("programs")
+        .upsert(payload);
 
       if (error) {
         console.error("Errore dettagliato Supabase:", error);
