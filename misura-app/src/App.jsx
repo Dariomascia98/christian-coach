@@ -772,7 +772,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
 
           {(currentDay.blocks || []).map((block, bIdx) => (
-            <div key={block.id || bIdx} style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+            <div key={ex.id || exIdx} style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
                 <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>BLOCCO #{bIdx + 1}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
