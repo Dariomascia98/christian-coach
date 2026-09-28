@@ -709,6 +709,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       )}
 
+     {/* Contenitore principale del giorno: un unico foglio continuo */}
       {days.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <Dumbbell size={28} color={C.textDim} style={{ marginBottom: 8 }} />
@@ -728,102 +729,86 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
         </div>
       ) : currentDay ? (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+          {/* Intestazione del Giorno */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8 }}>
             {isEditing ? (
               <input
                 value={currentDay.label || ""}
                 onChange={(e) => patchDay(activeDayIdx, (day) => ({ ...day, label: e.target.value }))}
-                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "6px 10px", borderRadius: 6, ...fontDisplay, fontSize: 20 }}
+                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 4, ...fontDisplay, fontSize: 18 }}
               />
             ) : (
-              <h2 style={{ ...fontDisplay, fontSize: 24, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
+              <h2 style={{ ...fontDisplay, fontSize: 20, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
             )}
             {isEditing && (
               <button onClick={() => deleteDay(activeDayIdx)} style={iconBtn} title="Elimina Giorno">
-                <Trash2 size={18} color={C.accent} />
+                <Trash2 size={16} color={C.accent} />
               </button>
             )}
           </div>
 
-          {isEditing && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-              {WEEKDAYS.map((w) => {
-                const active = (currentDay.weekdays || []).includes(w.code);
-                return (
-                  <button
-                    key={w.code}
-                    onClick={() => patchDay(activeDayIdx, (day) => {
-                      const curWd = day.weekdays || [];
-                      return { ...day, weekdays: active ? curWd.filter((c) => c !== w.code) : [...curWd, w.code] };
-                    })}
-                    style={{
-                      padding: "4px 8px", borderRadius: 6, fontSize: 11, ...fontMono, cursor: "pointer",
-                      border: `1px solid ${active ? C.accent : C.border}`,
-                      background: active ? C.accentSoft : C.panelHi,
-                      color: active ? C.accent : C.textDim
-                    }}
-                  >
-                    {w.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
+          {/* Lista Continua dei Blocchi ed Esercizi */}
           {(currentDay.blocks || []).map((block, bIdx) => (
-            <div key={ex.id || exIdx} style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
-                <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>BLOCCO #{bIdx + 1}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>SERIE:</span>
-                    {isEditing ? (
-                      <input value={block.rounds || ""} onChange={(e) => patchBlock(activeDayIdx, bIdx, (b) => ({ ...b, rounds: e.target.value }))} style={{ width: 50, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }} />
-                    ) : (
-                      <span style={{ ...fontMono, fontSize: 12, color: C.accent, fontWeight: 700 }}>{block.rounds}</span>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>RECUPERO:</span>
-                    {isEditing ? (
-                      <input value={block.restAfterRound || ""} onChange={(e) => patchBlock(activeDayIdx, bIdx, (b) => ({ ...b, restAfterRound: e.target.value }))} style={{ width: 60, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12 }} />
-                    ) : (
-                      <span style={{ ...fontMono, fontSize: 12, color: C.text }}>{block.restAfterRound}</span>
-                    )}
-                  </div>
-                  {isEditing && (
-                    <button onClick={() => deleteBlock(activeDayIdx, bIdx)} style={iconBtn} title="Elimina blocco">
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
+            <div key={block.id || bIdx} style={{ marginBottom: 14 }}>
+              {/* Intestazione sottile del blocco (senza box grigio pesante) */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6 }}>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1} (Serie: {block.rounds} — Recupero: {block.restAfterRound || "—"})</span>
+                {isEditing && (
+                  <button onClick={() => deleteBlock(activeDayIdx, bIdx)} style={iconBtn} title="Elimina blocco">
+                    <Trash2 size={14} color={C.danger} />
+                  </button>
+                )}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Elenco lineare degli esercizi */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 4 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ background: C.panel, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
+                  <div key={ex.id || exIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px", borderBottom: `1px dashed ${C.border}` }}>
                     {isEditing ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }} />
-                          <input placeholder="Ripetizioni" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 13 }} />
-                          <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input placeholder="Link Video YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }} />
-                          <input placeholder="Note / Istruzioni" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 12 }} />
-                        </div>
+                      <div style={{ display: "flex", gap: 6, width: "100%", flexWrap: "wrap" }}>
+                        <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
+                        <input placeholder="Ripetizioni" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
+                        <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={14} color={C.danger} /></button>
                       </div>
                     ) : (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 14 }}>{ex.name || "Esercizio"}</span>
-                            {ex.videoUrl && (
-                              <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video demo">
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13 }}>{ex.name || "Esercizio"}</span>
+                          {ex.videoUrl && (
+                            <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video">
+                              <PlayCircle size={15} color={C.accent} />
+                            </button>
+                          )}
+                          {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim }}>({ex.note})</span>}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ ...fontMono, fontSize: 12, color: C.positive, fontWeight: 600 }}>{ex.reps} rip</span>
+                          <button onClick={() => setActiveLoadExercise(ex.name)} style={{ ...secondaryBtn, padding: "4px 8px", fontSize: 11 }}>
+                            <Dumbbell size={12} /> Carichi
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {isEditing && (
+                  <button onClick={() => addExercise(activeDayIdx, bIdx)} style={{ ...secondaryBtn, justifyContent: "center", fontSize: 11, padding: "4px", marginTop: 4, borderStyle: "dashed" }}>
+                    <Plus size={12} /> Aggiungi Esercizio
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {isEditing && (
+            <button onClick={() => addBlock(activeDayIdx)} style={{ ...primaryBtn, marginTop: 8, fontSize: 12, padding: "6px 10px" }}>
+              <Plus size={14} /> Aggiungi Blocco
+            </button>
+          )}
+        </div>
+      ) : null} setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video demo">
                                 <PlayCircle size={18} color={C.accent} />
                               </button>
                             )}
