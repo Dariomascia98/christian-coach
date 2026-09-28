@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import {
   Save, Edit2, Check, Printer, Copy, Plus, Trash2,
-  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search
 } from 'lucide-react';
 
 /* ============================================================
@@ -11,14 +11,10 @@ import {
    - tabella "clients": id (uuid), trainer_id (uuid, FK auth.users),
      auth_user_id (uuid, FK auth.users, nullable finché il cliente
      non si registra), name (text), email (text), intake (jsonb)
-   - tabella "programs": id, client_id (FK clients), days (jsonb)
+   - tabella "programs": id, client_id (FK clients, UNIQUE), days (jsonb)
+   - tabella "exercises": id, name, category, image_url, trainer_id
    - tabella "progress_entries": id, client_id, date, weight, waist,
      chest, hips, notes, photo (url o base64)
-   - Il ruolo "trainer" è determinato dal campo
-     user_metadata.role === "trainer" impostato via SQL su
-     auth.users.raw_user_meta_data. Chi non ha questo metadata
-     viene cercato nella tabella "clients" tramite auth_user_id o email;
-     se non trovato, è in stato "pending".
    ============================================================ */
 
 // --- Utility e Costanti Globali ---
@@ -113,7 +109,7 @@ async function fetchProgram(clientId) {
       .from('programs')
       .select('*')
       .eq('client_id', clientId)
-      .single();
+      .maybeSingle();
     if (error) {
       console.error("Errore nel recupero del programma:", error);
       return null;
@@ -595,13 +591,19 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Program Section (Foglio continuo con parametri per singolo esercizio) ----------
+// ---------- Program Section (Foglio continuo con parametri per singolo esercizio + Libreria Supabase) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeVideoUrl, setActiveVideoUrl] = useState(null);
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Stati per la Modale della Libreria Esercizi
+  const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
+  const [exerciseList, setExerciseList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [targetExForModal, setTargetExForModal] = useState(null); // { bIdx, exIdx }
 
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
@@ -631,7 +633,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const addBlock = (dayIdx) => {
     const newBlock = { 
       id: uid(), 
-      exercises: [{ id: uid(), name: "", sets: "3", reps: "10-12", rest: "90''", note: "", videoUrl: "" }] 
+      exercises: [{ id: uid(), name: "", sets: "3", reps: "10-12", rest: "90''", note: "", videoUrl: "", imageUrl: "" }] 
     };
     patchDay(dayIdx, (day) => ({ ...day, blocks: [...(day.blocks || []), newBlock] }));
   };
@@ -641,12 +643,40 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   };
 
   const addExercise = (dayIdx, blockIdx) => {
-    const newEx = { id: uid(), name: "", sets: "3", reps: "10", rest: "90''", note: "", videoUrl: "" };
+    const newEx = { id: uid(), name: "", sets: "3", reps: "10", rest: "90''", note: "", videoUrl: "", imageUrl: "" };
     patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: [...block.exercises, newEx] }));
   };
 
   const deleteExercise = (dayIdx, blockIdx, exIdx) => {
     patchBlock(dayIdx, blockIdx, (block) => ({ ...block, exercises: block.exercises.filter((_, i) => i !== exIdx) }));
+  };
+
+  // Funzioni per la Libreria Esercizi da Supabase
+  const openExerciseLibrary = async (bIdx, exIdx) => {
+    setTargetExForModal({ bIdx, exIdx });
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (!error && data) {
+      setExerciseList(data);
+    }
+    setIsExerciseModalOpen(true);
+  };
+
+  const selectExerciseFromLibrary = (exercise) => {
+    if (!targetExForModal) return;
+    const { bIdx, exIdx } = targetExForModal;
+    
+    patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({
+      ...item,
+      name: exercise.name,
+      imageUrl: exercise.image_url || item.imageUrl
+    }));
+    
+    setIsExerciseModalOpen(false);
+    setTargetExForModal(null);
   };
 
   const copyFromClient = async (sourceClientId) => {
@@ -794,6 +824,16 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                         <div style={{ display: "flex", gap: 6, width: "100%", alignItems: "center", flexWrap: "wrap" }}>
                           <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
                           
+                          {/* Pulsante per aprire la libreria esercizi */}
+                          <button 
+                            type="button"
+                            onClick={() => openExerciseLibrary(bIdx, exIdx)} 
+                            style={{ ...secondaryBtn, padding: "4px 8px", fontSize: 11 }}
+                            title="Scegli dalla libreria"
+                          >
+                            <Search size={13} /> Libreria
+                          </button>
+
                           <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                             <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>SERIE:</span>
                             <input placeholder="3" value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: 40, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
@@ -818,7 +858,8 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                       </div>
                     ) : (
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+                          {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 4 }} />}
                           <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13 }}>{ex.name || "Esercizio"}</span>
                           {ex.videoUrl && (
                             <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video">
@@ -856,6 +897,58 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
         </div>
       ) : null}
+
+      {/* Modale Ricerca Libreria Esercizi Supabase */}
+      {isExerciseModalOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 500, maxHeight: "80vh", display: "flex", flexDirection: "column", padding: 16 }}>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ ...fontDisplay, color: C.text, fontSize: 18 }}>Seleziona Esercizio</span>
+              <button onClick={() => setIsExerciseModalOpen(false)} style={iconBtn}><X size={20} color={C.text} /></button>
+            </div>
+
+            <input
+              placeholder="Cerca per nome (es. Panca, Squat...)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}
+            />
+
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+              {exerciseList
+                .filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map((ex) => (
+                  <div
+                    key={ex.id}
+                    onClick={() => selectExerciseFromLibrary(ex)}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "8px 10px", background: C.panelHi, borderRadius: 6, cursor: "pointer",
+                      border: `1px solid ${C.border}`
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {ex.image_url ? (
+                        <img src={ex.image_url} alt="" style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 4 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, background: C.border, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Dumbbell size={16} color={C.textDim} />
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ ...fontBody, fontSize: 13, fontWeight: 600, color: C.text }}>{ex.name}</div>
+                        <div style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{ex.category || "Generale"}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>Seleziona →</span>
+                  </div>
+                ))}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {activeVideoUrl && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
@@ -1055,9 +1148,7 @@ export default function App() {
       return;
     }
 
-    // Funzione asincrona per determinare, auto-collegare o auto-creare il cliente
     (async () => {
-      // 1. Cerca prima tramite auth_user_id
       let { data, error } = await supabase
         .from('clients')
         .select('*')
@@ -1068,7 +1159,6 @@ export default function App() {
         console.error("Errore nel recupero del cliente tramite auth_user_id:", error);
       }
 
-      // 2. Se non lo trova, prova a collegarlo automaticamente tramite l'EMAIL del cliente
       if (!data) {
         const userEmail = session.user.email;
         const { data: clientByEmail, error: emailError } = await supabase
@@ -1091,7 +1181,6 @@ export default function App() {
         }
       }
 
-      // 3. SE ANCORA NON ESISTE, LO CREA AUTOMATICAMENTE (Elimina il "pending")
       if (!data) {
         const userEmail = session.user.email;
         const defaultName = session.user.user_metadata?.name || userEmail.split('@')[0];
@@ -1114,12 +1203,10 @@ export default function App() {
         }
       }
 
-      // 4. Accesso sempre sbloccato come cliente
       if (data) {
         setRole("client");
         setMyClientRecord(data);
       } else {
-        // Fallback di sicurezza estrema per evitare qualsiasi blocco grafico
         setRole("client");
         setMyClientRecord({
           auth_user_id: session.user.id,
