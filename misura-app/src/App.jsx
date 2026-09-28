@@ -179,7 +179,7 @@ function AuthScreen({ onLoggedIn }) {
   return (
     <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 28, width: "100%", maxWidth: 380 }}>
-        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px" }}>MISURA</h1>
+        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px" }}>CHRIS COACH</h1>
         <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px" }}>
           {mode === "login" ? "Accedi al tuo account" : "Crea un nuovo account"}
         </p>
