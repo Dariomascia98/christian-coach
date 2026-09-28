@@ -355,12 +355,12 @@ function TrainerDashboard({ session, onLogout }) {
 // ============================================================
 // WORKSPACE CLIENTE: anamnesi + programma + progressi
 // ============================================================
-function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated }) {
+function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated, onLogout }) {
   const [tab, setTab] = useState("intake");
   const [program, setProgram] = useState(null);
   const [progressEntries, setProgressEntries] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
-
+  
   useEffect(() => {
     let active = true;
     async function load() {
@@ -405,13 +405,16 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
     }
     setProgressEntries((prev) => [...prev, entry]);
   };
-
-  return (
+return (
     <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          {isTrainer && (
+          {isTrainer ? (
             <button onClick={onBack} style={secondaryBtn}>← Torna ai clienti</button>
+          ) : (
+            <button onClick={onLogout} style={secondaryBtn}>
+              <LogOut size={15} /> Esci
+            </button>
           )}
           <div className="no-print" style={{ display: "flex", gap: 8 }}>
             {["intake", "program", "progress"].map((t) => (
@@ -1175,6 +1178,7 @@ export default function App() {
       client={myClientRecord}
       isTrainer={false}
       onBack={() => {}}
+onLogout={handleLogout}
     />
   );
 }
