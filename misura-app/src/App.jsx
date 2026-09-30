@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import {
   Save, Edit2, Check, Printer, Copy, Plus, Trash2,
-  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search, WifiOff, Sparkles
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search, WifiOff, Sparkles, Timer
 } from 'lucide-react';
 
 /* ============================================================
@@ -14,7 +14,7 @@ import {
    - tabella "programs": id, client_id (FK clients, UNIQUE), days (jsonb)
    - tabella "exercises": id, name, category, image_url, trainer_id
    - tabella "progress_entries": id, client_id, date, weight, waist,
-     chest, hips, notes, photo (url o base64)
+     chest, hips, biceps, quads, notes, photo (url o base64)
    - tabella "loads": id, client_id, exercise_name, weight, reps, date, notes, sets (jsonb)
    ============================================================ */
 
@@ -616,7 +616,61 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Modale Carichi con Gestione Multi-Serie (Stile MyFitCoach) ----------
+// ---------- Componente Timer di Recupero (Stile MyFitCoach) ----------
+function RestTimer() {
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    let interval = null;
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
+  const startTimer = (seconds) => {
+    setTimeLeft(seconds);
+    setIsActive(true);
+  };
+
+  const formatTime = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  return (
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, marginBottom: 12, boxSizing: "border-box", width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+          <Timer size={14} /> TIMER RECUPERO
+        </span>
+        {timeLeft !== null && (
+          <span style={{ ...fontDisplay, fontSize: 15, color: timeLeft === 0 ? C.positive : C.text }}>
+            {timeLeft === 0 ? "Tempo scaduto! 🔔" : formatTime(timeLeft)}
+          </span>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => startTimer(60)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>60s</button>
+        <button type="button" onClick={() => startTimer(90)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>90s</button>
+        <button type="button" onClick={() => startTimer(120)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>120s</button>
+        {isActive ? (
+          <button type="button" onClick={() => setIsActive(false)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 10px", background: C.danger, color: "#fff", border: "none", flex: 1, justifyContent: "center" }}>Pausa</button>
+        ) : timeLeft !== null ? (
+          <button type="button" onClick={() => setIsActive(true)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 10px", background: C.positive, color: "#fff", border: "none", flex: 1, justifyContent: "center" }}>Riprendi</button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Modale Carichi con Gestione Multi-Serie e Timer ----------
 function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -709,17 +763,23 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 8, boxSizing: "border-box", overflowX: "hidden" }}>
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 440, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box", overflowX: "hidden" }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 440, maxHeight: "92vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box", overflowX: "hidden" }}>
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
-          <span style={{ ...fontDisplay, color: C.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Carichi — {exerciseName}</span>
+          <span style={{ ...fontDisplay, color: C.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Carichi & Serie — {exerciseName}</span>
           <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
         </div>
+
+        {/* Timer integrato nella modale carichi */}
+        <RestTimer />
 
         <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA SESSIONE MULTI-SERIE</span>
           
-          <Field label="Data" type="date" value={date} onChange={setDate} />
+          {/* Box data perfettamente allineato */}
+          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+            <Field label="Data" type="date" value={date} onChange={setDate} />
+          </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SERIE ESEGUITE</label>
@@ -1278,7 +1338,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   );
 }
 
-// ---------- Sezione Progressi ----------
+// ---------- Sezione Progressi (con Bicipite e Quadricipite) ----------
 export function ProgressSection({ entries = [], onAdd }) {
   const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
@@ -1287,6 +1347,8 @@ export function ProgressSection({ entries = [], onAdd }) {
   const [waist, setWaist] = useState("");
   const [chest, setChest] = useState("");
   const [hips, setHips] = useState("");
+  const [biceps, setBiceps] = useState("");
+  const [quads, setQuads] = useState("");
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState(null);
   const [photoProcessing, setPhotoProcessing] = useState(false);
@@ -1316,11 +1378,13 @@ export function ProgressSection({ entries = [], onAdd }) {
       waist: waist ? parseFloat(waist) : null,
       chest: chest ? parseFloat(chest) : null,
       hips: hips ? parseFloat(hips) : null,
+      biceps: biceps ? parseFloat(biceps) : null,
+      quads: quads ? parseFloat(quads) : null,
       notes, photo
     };
     if (onAdd) onAdd(newEntry);
     setShowAdd(false);
-    setWeight(""); setWaist(""); setChest(""); setHips(""); setNotes(""); setPhoto(null);
+    setWeight(""); setWaist(""); setChest(""); setHips(""); setBiceps(""); setQuads(""); setNotes(""); setPhoto(null);
   };
 
   return (
@@ -1336,11 +1400,15 @@ export function ProgressSection({ entries = [], onAdd }) {
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 16, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
           <h4 style={{ ...fontDisplay, fontSize: 15, color: C.accent, margin: "0 0 12px" }}>Nuovo Aggiornamento</h4>
           
-          <Field label="Data" type="date" value={date} onChange={setDate} />
+          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+            <Field label="Data" type="date" value={date} onChange={setDate} />
+          </div>
           <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
           <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
           <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
           <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
+          <Field label="Bicipite (cm)" type="number" value={biceps} onChange={setBiceps} />
+          <Field label="Quadricipite (cm)" type="number" value={quads} onChange={setQuads} />
           <Field label="Note" value={notes} onChange={setNotes} />
 
           <div style={{ margin: "12px 0 16px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
@@ -1406,6 +1474,16 @@ export function ProgressSection({ entries = [], onAdd }) {
                     {entry.hips && (
                       <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
                         Fianchi: <strong>{entry.hips}</strong> cm
+                      </span>
+                    )}
+                    {entry.biceps && (
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
+                        Bicipite: <strong>{entry.biceps}</strong> cm
+                      </span>
+                    )}
+                    {entry.quads && (
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
+                        Quadricipite: <strong>{entry.quads}</strong> cm
                       </span>
                     )}
                   </div>
