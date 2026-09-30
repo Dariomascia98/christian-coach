@@ -1161,7 +1161,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   );
 }
 
-// ---------- Sezione Progressi Ottimizzata (Layout a prova di smartphone) ----------
+// ---------- Sezione Progressi (Layout Mobile a colonna fissa, Zero Sovrapposizioni) ----------
 export function ProgressSection({ entries = [], onAdd }) {
   const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
@@ -1224,7 +1224,6 @@ export function ProgressSection({ entries = [], onAdd }) {
             <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
           </div>
 
-          {/* Circonferenze disposte su 2 colonne per evitare sovrapposizioni su mobile */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
             <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
             <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
@@ -1268,10 +1267,15 @@ export function ProgressSection({ entries = [], onAdd }) {
           {[...safeEntries].reverse().map((entry) => (
             <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
               
-              {/* Header card: Data e Peso con larghezza flessibile per evitare accavallamenti */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `1px solid ${C.border}`, paddingBottom: 8, gap: 12 }}>
-                <span style={{ ...fontMono, fontSize: 12, color: C.textDim, fontWeight: 600 }}>{fmtDate(entry.date)}</span>
-                <span style={{ ...fontDisplay, fontSize: 20, color: C.positive, lineHeight: 1 }}>{entry.weight} <span style={{ fontSize: 13, fontWeight: "normal", color: C.textDim }}>kg</span></span>
+              {/* Header card strutturato rigorosamente in colonna verticale per dispositivi mobili stretti */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: "uppercase" }}>Data misurazione</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ ...fontBody, fontSize: 14, color: C.text, fontWeight: 600 }}>{fmtDate(entry.date)}</span>
+                  <span style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>
+                    {entry.weight} <span style={{ fontSize: 13, fontWeight: "normal", color: C.textDim }}>kg</span>
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
