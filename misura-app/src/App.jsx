@@ -48,22 +48,22 @@ const primaryBtn = {
   background: C.accent, color: "#fff", border: "none", borderRadius: 8,
   padding: "10px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-  boxSizing: "border-box"
+  boxSizing: "border-box", maxWidth: "100%"
 };
 
 const secondaryBtn = {
   background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8,
   padding: "10px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-  boxSizing: "border-box"
+  boxSizing: "border-box", maxWidth: "100%"
 };
 
 const iconBtn = {
-  background: "transparent", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", justifyContent: "center"
+  background: "transparent", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
 };
 
 const inputStyle = {
-  display: "block", width: "100%", marginTop: 4, padding: "10px 12px",
+  display: "block", width: "100%", maxWidth: "100%", marginTop: 4, padding: "10px 12px",
   background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
   color: C.text, ...fontBody, fontSize: 13, outline: "none", boxSizing: "border-box"
 };
@@ -83,7 +83,7 @@ const ACTIVITY_LEVELS = [
 
 function Field({ label, type = "text", value, onChange }) {
   return (
-    <div style={{ marginBottom: 10, width: "100%", boxSizing: "border-box" }}>
+    <div style={{ marginBottom: 10, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
       <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{(label || "").toUpperCase()}</label>
       <input
         type={type}
@@ -176,10 +176,10 @@ function AuthScreen({ onLoggedIn }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box" }}>
-      <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360, boxSizing: "border-box" }}>
-        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px", textAlign: "center" }}>CHRIS COACH</h1>
-        <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px", textAlign: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 12, boxSizing: "border-box", overflowX: "hidden" }}>
+      <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, width: "100%", maxWidth: 360, boxSizing: "border-box" }}>
+        <h1 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: "0 0 4px", textAlign: "center" }}>CHRIS COACH</h1>
+        <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 16px", textAlign: "center" }}>
           {mode === "login" ? "Accedi al tuo account" : "Crea un nuovo account"}
         </p>
 
@@ -294,9 +294,9 @@ function TrainerDashboard({ session, onLogout }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 16, boxSizing: "border-box" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, maxWidth: 900, margin: "0 auto 20px" }}>
-        <h1 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>I TUOI CLIENTI</h1>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 12, boxSizing: "border-box", overflowX: "hidden" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, maxWidth: 900, margin: "0 auto 16px", flexWrap: "wrap", gap: 8 }}>
+        <h1 style={{ ...fontDisplay, fontSize: 20, color: C.text, margin: 0 }}>I TUOI CLIENTI</h1>
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={() => setShowNewClient(!showNewClient)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
             <UserPlus size={15} /> Nuovo
@@ -309,14 +309,14 @@ function TrainerDashboard({ session, onLogout }) {
 
       <div style={{ maxWidth: 900, margin: "0 auto", boxSizing: "border-box" }}>
         {showNewClient && (
-          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16, boxSizing: "border-box" }}>
-            <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "0 0 12px" }}>Aggiungi Nuovo Cliente</h3>
+          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 16, boxSizing: "border-box", maxWidth: "100%" }}>
+            <h3 style={{ ...fontDisplay, fontSize: 15, color: C.text, margin: "0 0 10px" }}>Aggiungi Nuovo Cliente</h3>
             <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
             <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
             <Field label="Password temporanea (opzionale)" type="text" value={newClientPassword} onChange={setNewClientPassword} />
-            <span style={{ fontSize: 11, color: C.textDim, margin: "-6px 0 12px", display: "block" }}>Se vuota, sarà generata in automatico.</span>
+            <span style={{ fontSize: 11, color: C.textDim, margin: "-4px 0 10px", display: "block" }}>Se vuota, sarà generata in automatico.</span>
             
-            {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{createError}</p>}
+            {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 10 }}>{createError}</p>}
             
             <button type="submit" disabled={creating} style={{ ...primaryBtn, width: "100%", opacity: creating ? 0.7 : 1 }}>
               {creating ? "Creazione..." : "Crea Cliente"}
@@ -327,27 +327,27 @@ function TrainerDashboard({ session, onLogout }) {
         {loading ? (
           <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento clienti...</p>
         ) : clients.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
+          <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
             <p style={{ ...fontBody, margin: 0 }}>Nessun cliente trovato o connessione assente.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box", maxWidth: "100%" }}>
             {clients.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setSelectedClientId(c.id)}
                 style={{
-                  ...secondaryBtn, justifyContent: "space-between", padding: 14, textAlign: "left",
-                  width: "100%", alignItems: "center", background: C.panel, boxSizing: "border-box"
+                  ...secondaryBtn, justifyContent: "space-between", padding: 12, textAlign: "left",
+                  width: "100%", maxWidth: "100%", alignItems: "center", background: C.panel, boxSizing: "border-box"
                 }}
               >
-                <div>
-                  <span style={{ ...fontDisplay, fontSize: 15, color: C.text, display: "block" }}>{c.name}</span>
-                  <span style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginTop: 2 }}>
+                <div style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
+                  <span style={{ ...fontDisplay, fontSize: 14, color: C.text, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                  <span style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {c.intake?.goal || "Obiettivo non impostato"}
                   </span>
                 </div>
-                <span style={{ color: C.accent, fontSize: 16 }}>→</span>
+                <span style={{ color: C.accent, fontSize: 16, flexShrink: 0 }}>→</span>
               </button>
             ))}
           </div>
@@ -431,9 +431,9 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 12, boxSizing: "border-box" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto", boxSizing: "border-box" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 8, boxSizing: "border-box", overflowX: "hidden" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", boxSizing: "border-box", width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 6, flexWrap: "wrap", boxSizing: "border-box" }}>
           {isTrainer ? (
             <button onClick={onBack} style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 12 }}>← Clienti</button>
           ) : (
@@ -441,7 +441,7 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
               <LogOut size={14} /> Esci
             </button>
           )}
-          <div className="no-print" style={{ display: "flex", gap: 4 }}>
+          <div className="no-print" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {["intake", "program", "progress"].map((t) => (
               <button
                 key={t}
@@ -464,7 +464,7 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
         {loadingData ? (
           <p style={{ ...fontBody, color: C.textDim, textAlign: "center", marginTop: 40 }}>Caricamento...</p>
         ) : (
-          <>
+          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             {tab === "intake" && (
               <IntakeSection intake={client.intake} isTrainer={isTrainer} onSave={handleSaveIntake} />
             )}
@@ -481,7 +481,7 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
             {tab === "progress" && (
               <ProgressSection entries={progressEntries} onAdd={handleAddProgressEntry} />
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -525,9 +525,9 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   const calc = calcBmrTdee(form);
 
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxSizing: "border-box" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>ANAMNESI & PARAMETRI</h3>
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, boxSizing: "border-box", width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: 0 }}>ANAMNESI & PARAMETRI</h3>
         {isTrainer && (
           <button onClick={() => { if (editing) handleSave(); else setEditing(true); }} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 12 }}>
             {editing ? <><Save size={13} /> Salva</> : <><Edit2 size={13} /> Modifica</>}
@@ -536,9 +536,9 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
       </div>
 
       {editing ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
           <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
-          <div>
+          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
             <select value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })} style={inputStyle}>
               <option value="M">Uomo (M)</option>
@@ -549,7 +549,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
           <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
           <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
 
-          <div>
+          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
             <select value={form.activityLevel} onChange={(e) => setForm({ ...form, activityLevel: e.target.value })} style={inputStyle}>
               {ACTIVITY_LEVELS.map((a) => (<option key={a.value} value={a.value}>{a.label}</option>))}
@@ -565,48 +565,48 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
           </button>
         </div>
       ) : (
-        <div>
+        <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
           {calc && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: C.panelHi, padding: 10, borderRadius: 10, marginBottom: 16, textAlign: "center", boxSizing: "border-box" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: C.panelHi, padding: 10, borderRadius: 10, marginBottom: 16, textAlign: "center", boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
               <div>
                 <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>ETÀ</p>
-                <p style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "2px 0 0" }}>{calc.age}</p>
+                <p style={{ ...fontDisplay, fontSize: 15, color: C.text, margin: "2px 0 0" }}>{calc.age}</p>
               </div>
               <div>
                 <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>BMR</p>
-                <p style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "2px 0 0" }}>{calc.bmr}</p>
+                <p style={{ ...fontDisplay, fontSize: 15, color: C.accent, margin: "2px 0 0" }}>{calc.bmr}</p>
               </div>
               <div>
                 <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>TDEE</p>
-                <p style={{ ...fontDisplay, fontSize: 16, color: C.positive, margin: "2px 0 0" }}>{calc.tdee}</p>
+                <p style={{ ...fontDisplay, fontSize: 15, color: C.positive, margin: "2px 0 0" }}>{calc.tdee}</p>
               </div>
             </div>
           )}
 
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 12, wordBreak: "break-word" }}>
             <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ALTEZZA / PESO</p>
             <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
               {form.heightCm ? `${form.heightCm} cm` : "—"} / {form.startingWeight ? `${form.startingWeight} kg` : "—"}
             </p>
           </div>
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 12, wordBreak: "break-word" }}>
             <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ATTIVITÀ</p>
             <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
               {ACTIVITY_LEVELS.find((a) => a.value === form.activityLevel)?.label || form.activityLevel || "—"}
             </p>
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: 10, wordBreak: "break-word" }}>
             <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>OBIETTIVO</p>
             <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>{form.goal || "Non specificato"}</p>
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: 10, wordBreak: "break-word" }}>
             <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>INFORTUNI / LIMITAZIONI</p>
             <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>{form.injuries || "Nessuno segnalato"}</p>
           </div>
 
-          <div>
+          <div style={{ wordBreak: "break-word" }}>
             <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>NOTE</p>
             <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>{form.notes || "—"}</p>
           </div>
@@ -708,46 +708,46 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12, boxSizing: "border-box" }}>
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 460, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 16, boxSizing: "border-box" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 8, boxSizing: "border-box", overflowX: "hidden" }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 440, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box", overflowX: "hidden" }}>
         
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Carichi & Serie — {exerciseName}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+          <span style={{ ...fontDisplay, color: C.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Carichi — {exerciseName}</span>
           <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
         </div>
 
-        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box" }}>
+        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA SESSIONE MULTI-SERIE</span>
           
           <Field label="Data" type="date" value={date} onChange={setDate} />
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SERIE ESEGUITE</label>
             {setsData.map((s, idx) => (
-              <div key={idx} style={{ display: "flex", gap: 6, alignItems: "center", boxSizing: "border-box" }}>
-                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, width: 42 }}>#{s.setNum}</span>
+              <div key={idx} style={{ display: "flex", gap: 6, alignItems: "center", boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, width: 34, flexShrink: 0 }}>#{s.setNum}</span>
                 <input
                   type="text"
                   placeholder="Kg"
                   value={s.weight}
                   onChange={(e) => handleSetChange(idx, "weight", e.target.value)}
-                  style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
+                  style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
                 />
                 <input
                   type="text"
                   placeholder="Rip"
                   value={s.reps}
                   onChange={(e) => handleSetChange(idx, "reps", e.target.value)}
-                  style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
+                  style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
                 />
                 {setsData.length > 1 && (
-                  <button type="button" onClick={() => handleRemoveSetRow(idx)} style={{ ...iconBtn, padding: 4 }}>
+                  <button type="button" onClick={() => handleRemoveSetRow(idx)} style={{ ...iconBtn, padding: 4, flexShrink: 0 }}>
                     <Trash2 size={14} color={C.danger} />
                   </button>
                 )}
               </div>
             ))}
-            <button type="button" onClick={handleAddSetRow} style={{ ...secondaryBtn, fontSize: 11, padding: "6px", marginTop: 4, justifyContent: "center" }}>
+            <button type="button" onClick={handleAddSetRow} style={{ ...secondaryBtn, fontSize: 11, padding: "6px", marginTop: 4, justifyContent: "center", width: "100%" }}>
               <Plus size={13} /> Aggiungi Serie
             </button>
           </div>
@@ -759,7 +759,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
           </button>
         </form>
 
-        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, WebkitOverflowScrolling: "touch" }}>
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, WebkitOverflowScrolling: "touch", width: "100%", maxWidth: "100%" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.textDim, marginBottom: 2 }}>STORICO PRECEDENTE</span>
           {loading ? (
             <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center" }}>Caricamento storico...</p>
@@ -767,15 +767,15 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
             <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center", padding: 10 }}>Nessuna performance registrata per questo esercizio.</p>
           ) : (
             logs.map((log) => (
-              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 4, boxSizing: "border-box" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 4, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
                   <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 600 }}>{fmtDate(log.date)}</span>
-                  {log.notes && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic" }}>{log.notes}</span>}
+                  {log.notes && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic", wordBreak: "break-word" }}>{log.notes}</span>}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
                   {log.sets && Array.isArray(log.sets) ? (
                     log.sets.map((s, sIdx) => (
-                      <span key={sIdx} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 11, ...fontMono, color: C.text }}>
+                      <span key={sIdx} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
                         #{s.setNum}: <strong style={{ color: C.positive }}>{s.weight}kg</strong> {s.reps ? `× ${s.reps}` : ""}
                       </span>
                     ))
@@ -986,12 +986,12 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   };
 
   return (
-    <div>
-      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>
+    <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
+      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8, boxSizing: "border-box" }}>
+        <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: 0 }}>
           {isTrainer ? `PROGRAMMA` : "IL TUO PROGRAMMA"}
         </h3>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           {saveStatus === "saving" && <span style={{ fontSize: 11, color: C.textDim }}>Salvataggio...</span>}
           {saveStatus === "saved" && <span style={{ fontSize: 11, color: C.positive, fontWeight: 600 }}>✓ Salvato</span>}
           {saveStatus === "error" && <span style={{ fontSize: 11, color: C.danger, fontWeight: 600 }}>✕ Errore</span>}
@@ -1008,10 +1008,10 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       </div>
 
       {isTrainer && isEditing && (siblingClients || []).length > 0 && (
-        <div className="no-print" style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", boxSizing: "border-box" }}>
-          <Copy size={14} color={C.accent} />
+        <div className="no-print" style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
+          <Copy size={14} color={C.accent} style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: C.textDim }}>Copia da:</span>
-          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 8px", borderRadius: 6, fontSize: 12, flex: 1, boxSizing: "border-box" }}>
+          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 8px", borderRadius: 6, fontSize: 12, flex: 1, minWidth: 120, boxSizing: "border-box" }}>
             <option value="" disabled>Seleziona cliente...</option>
             {siblingClients.filter((c) => c.id !== clientId).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
@@ -1019,7 +1019,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {days.length > 0 && (
-        <div className="no-print" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 12, WebkitOverflowScrolling: "touch" }}>
+        <div className="no-print" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 12, WebkitOverflowScrolling: "touch", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
           {days.map((day, idx) => (
             <button
               key={day.id || idx}
@@ -1044,7 +1044,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {days.length === 0 ? (
-        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
+        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}`, boxSizing: "border-box", width: "100%" }}>
           <Dumbbell size={26} color={C.textDim} style={{ marginBottom: 6 }} />
           <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessun giorno di allenamento trovato.</p>
           {isTrainer && (
@@ -1054,16 +1054,16 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
         </div>
       ) : currentDay ? (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, boxSizing: "border-box" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8, gap: 8, boxSizing: "border-box" }}>
             {isEditing ? (
               <input
                 value={currentDay.label || ""}
                 onChange={(e) => patchDay(activeDayIdx, (day) => ({ ...day, label: e.target.value }))}
-                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 6, ...fontDisplay, fontSize: 16, width: "75%", boxSizing: "border-box" }}
+                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 6, ...fontDisplay, fontSize: 15, flex: 1, minWidth: 0, boxSizing: "border-box" }}
               />
             ) : (
-              <h2 style={{ ...fontDisplay, fontSize: 17, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
+              <h2 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: 0, wordBreak: "break-word" }}>{currentDay.label}</h2>
             )}
             {isEditing && (
               <button onClick={() => deleteDay(activeDayIdx)} style={iconBtn} title="Elimina Giorno">
@@ -1073,7 +1073,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           </div>
 
           {isEditing && (
-            <div style={{ display: "flex", gap: 4, marginBottom: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 10, flexWrap: "wrap", boxSizing: "border-box" }}>
               {WEEKDAYS.map((w) => {
                 const active = (currentDay.weekdays || []).includes(w.code);
                 return (
@@ -1099,7 +1099,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
 
           {(currentDay.blocks || []).map((block, bIdx) => (
-            <div key={block.id || bIdx} style={{ marginBottom: 12 }}>
+            <div key={block.id || bIdx} style={{ marginBottom: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6, boxSizing: "border-box" }}>
                 <span style={{ ...fontMono, fontSize: 10, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1}</span>
                 {isEditing && (
@@ -1109,19 +1109,19 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                 )}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                 {(block.exercises || []).map((ex, exIdx) => {
                   const smartProg = !isEditing && ex.name ? getSmartProgression(ex.name, ex.reps) : null;
                   return (
-                    <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8, boxSizing: "border-box" }}>
+                    <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
                       {isEditing ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                             <input 
                               placeholder="Nome Esercizio" 
                               value={ex.name || ""} 
                               onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} 
-                              style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" }} 
+                              style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" }} 
                             />
                             <button 
                               type="button"
@@ -1141,11 +1141,11 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                           <Field label="Note" type="text" value={ex.note} onChange={(v) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: v }))} />
                         </div>
                       ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, boxSizing: "border-box" }}>
                               {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
-                              <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13, wordBreak: "break-word" }}>{ex.name || "Esercizio"}</span>
+                              <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13, wordBreak: "break-word", overflow: "hidden", textOverflow: "ellipsis" }}>{ex.name || "Esercizio"}</span>
                               {ex.videoUrl && (
                                 <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Video">
                                   <PlayCircle size={16} color={C.accent} />
@@ -1157,23 +1157,23 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                             </button>
                           </div>
 
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11, boxSizing: "border-box" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11, boxSizing: "border-box", flexWrap: "wrap", gap: 4, width: "100%", maxWidth: "100%" }}>
                             <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
                             <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
                             <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
                           </div>
 
                           {smartProg && (
-                            <div style={{ background: C.accentSoft, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "6px 8px", display: "flex", alignItems: "center", gap: 6, boxSizing: "border-box" }}>
+                            <div style={{ background: C.accentSoft, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "6px 8px", display: "flex", alignItems: "center", gap: 6, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
                               <Sparkles size={14} color={C.accent} style={{ flexShrink: 0 }} />
-                              <div style={{ ...fontBody, fontSize: 11, color: C.text }}>
+                              <div style={{ ...fontBody, fontSize: 11, color: C.text, wordBreak: "break-word", minWidth: 0, flex: 1 }}>
                                 <span style={{ fontWeight: 700, color: C.accent }}>Consiglio: </span>
-                                {smartProg.msg} (Peso suggerito oggi: <strong>{smartProg.suggestedWeight} kg</strong>)
+                                {smartProg.msg} (Peso: <strong>{smartProg.suggestedWeight} kg</strong>)
                               </div>
                             </div>
                           )}
 
-                          {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic" }}>Note: {ex.note}</span>}
+                          {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic", wordBreak: "break-word" }}>Note: {ex.note}</span>}
                         </div>
                       )}
                     </div>
@@ -1199,11 +1199,11 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
       {/* Modale Ricerca Libreria Esercizi */}
       {isExerciseModalOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 12, boxSizing: "border-box" }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 420, maxHeight: "85vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 8, boxSizing: "border-box", overflowX: "hidden" }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 400, maxHeight: "85vh", display: "flex", flexDirection: "column", padding: 12, boxSizing: "border-box", overflowX: "hidden" }}>
             
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Seleziona Esercizio</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+              <span style={{ ...fontDisplay, color: C.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Seleziona Esercizio</span>
               <button onClick={() => setIsExerciseModalOpen(false)} style={iconBtn}><X size={20} color={C.text} /></button>
             </div>
 
@@ -1211,10 +1211,10 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
               placeholder="Cerca esercizio..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 10, width: "100%", boxSizing: "border-box" }}
+              style={{ background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 10, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}
             />
 
-            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, WebkitOverflowScrolling: "touch" }}>
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, WebkitOverflowScrolling: "touch", width: "100%", maxWidth: "100%" }}>
               {exerciseList
                 .filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map((ex) => (
@@ -1224,23 +1224,23 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       padding: "10px", background: C.panelHi, borderRadius: 8, cursor: "pointer",
-                      border: `1px solid ${C.border}`, boxSizing: "border-box"
+                      border: `1px solid ${C.border}`, boxSizing: "border-box", width: "100%", maxWidth: "100%", gap: 8
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, boxSizing: "border-box" }}>
                       {ex.image_url ? (
-                        <img src={ex.image_url} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                        <img src={ex.image_url} alt="" style={{ width: 34, height: 34, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                       ) : (
-                        <div style={{ width: 36, height: 36, background: C.border, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <div style={{ width: 34, height: 34, background: C.border, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <Dumbbell size={16} color={C.textDim} />
                         </div>
                       )}
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ ...fontBody, fontSize: 13, fontWeight: 600, color: C.text, wordBreak: "break-word" }}>{ex.name}</div>
-                        <div style={{ ...fontMono, fontSize: 10, color: C.textDim }}>{ex.category || "Generale"}</div>
+                        <div style={{ ...fontMono, fontSize: 10, color: C.textDim, wordBreak: "break-word" }}>{ex.category || "Generale"}</div>
                       </div>
                     </div>
-                    <span style={{ fontSize: 12, color: C.accent, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>Seleziona</span>
+                    <span style={{ fontSize: 12, color: C.accent, fontWeight: 600, flexShrink: 0 }}>Seleziona</span>
                   </div>
                 ))}
             </div>
@@ -1249,13 +1249,13 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {activeVideoUrl && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12, boxSizing: "border-box" }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 500, padding: 14, boxSizing: "border-box" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ ...fontDisplay, color: C.text, fontSize: 15 }}>Video Dimostrativo</span>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 8, boxSizing: "border-box", overflowX: "hidden" }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 440, padding: 12, boxSizing: "border-box", overflowX: "hidden" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
+              <span style={{ ...fontDisplay, color: C.text, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Video Dimostrativo</span>
               <button onClick={() => setActiveVideoUrl(null)} style={iconBtn}><X size={20} color={C.text} /></button>
             </div>
-            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, width: "100%", maxWidth: "100%" }}>
               <iframe
                 src={activeVideoUrl.replace("watch?v=", "embed/")}
                 title="Video demo"
@@ -1324,17 +1324,17 @@ export function ProgressSection({ entries = [], onAdd }) {
   };
 
   return (
-    <div style={{ width: "100%", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI</h3>
+    <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8, boxSizing: "border-box" }}>
+        <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: 0 }}>PROGRESSI</h3>
         <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
           <Plus size={15} /> Misurazione
         </button>
       </div>
 
       {showAdd && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 18, width: "100%", boxSizing: "border-box" }}>
-          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 14px" }}>Nuovo Aggiornamento</h4>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 16, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
+          <h4 style={{ ...fontDisplay, fontSize: 15, color: C.accent, margin: "0 0 12px" }}>Nuovo Aggiornamento</h4>
           
           <Field label="Data" type="date" value={date} onChange={setDate} />
           <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
@@ -1343,15 +1343,15 @@ export function ProgressSection({ entries = [], onAdd }) {
           <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
           <Field label="Note" value={notes} onChange={setNotes} />
 
-          <div style={{ margin: "14px 0 18px", width: "100%", boxSizing: "border-box" }}>
+          <div style={{ margin: "12px 0 16px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
-            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "flex", cursor: "pointer", fontSize: 12, padding: "12px 14px", width: "100%", justifyContent: "center", alignItems: "center", boxSizing: "border-box" }}>
+            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "flex", cursor: "pointer", fontSize: 12, padding: "12px 14px", width: "100%", maxWidth: "100%", justifyContent: "center", alignItems: "center", boxSizing: "border-box" }}>
               <Camera size={16} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
             </label>
             {photo && (
-              <div style={{ marginTop: 10, position: "relative", width: 90, height: 90, margin: "10px auto 0" }}>
-                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10, border: `1px solid ${C.border}`, boxSizing: "border-box" }} />
+              <div style={{ marginTop: 10, position: "relative", width: 80, height: 80, margin: "10px auto 0" }}>
+                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, border: `1px solid ${C.border}`, boxSizing: "border-box" }} />
                 <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -8, right: -8, background: C.danger, border: "none", borderRadius: "50%", color: "#fff", width: 22, height: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <X size={12} />
                 </button>
@@ -1359,7 +1359,7 @@ export function ProgressSection({ entries = [], onAdd }) {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10, width: "100%", boxSizing: "border-box" }}>
+          <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13, padding: "12px" }}>Salva</button>
             <button onClick={() => setShowAdd(false)} style={{ ...secondaryBtn, flex: 1, fontSize: 13, padding: "12px", justifyContent: "center" }}>Annulla</button>
           </div>
@@ -1367,31 +1367,31 @@ export function ProgressSection({ entries = [], onAdd }) {
       )}
 
       {safeEntries.length === 0 ? (
-        <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 14, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
-          <TrendingUp size={32} color={C.textDim} style={{ marginBottom: 8 }} />
+        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 14, border: `1px solid ${C.border}`, boxSizing: "border-box", width: "100%" }}>
+          <TrendingUp size={30} color={C.textDim} style={{ marginBottom: 8 }} />
           <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
           {[...safeEntries].reverse().map((entry) => (
-            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10, width: "100%", boxSizing: "border-box" }}>
+            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
               
-              <div style={{ display: "flex", flexDirection: "column", gap: 2, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2, borderBottom: `1px solid ${C.border}`, paddingBottom: 6, boxSizing: "border-box", width: "100%" }}>
                 <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: "uppercase" }}>Data misurazione</span>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ ...fontBody, fontSize: 14, color: C.text, fontWeight: 600 }}>{fmtDate(entry.date)}</span>
-                  <span style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>
-                    {entry.weight} <span style={{ fontSize: 13, fontWeight: "normal", color: C.textDim }}>kg</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 4 }}>
+                  <span style={{ ...fontBody, fontSize: 13, color: C.text, fontWeight: 600 }}>{fmtDate(entry.date)}</span>
+                  <span style={{ ...fontDisplay, fontSize: 18, color: C.positive }}>
+                    {entry.weight} <span style={{ fontSize: 12, fontWeight: "normal", color: C.textDim }}>kg</span>
                   </span>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", width: "100%", boxSizing: "border-box" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", width: "100%", maxWidth: "100%", boxSizing: "border-box", flexWrap: "wrap" }}>
                 {entry.photo && (
-                  <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.border}`, boxSizing: "border-box" }} />
+                  <img src={entry.photo} alt="Progress" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.border}`, boxSizing: "border-box" }} />
                 )}
                 
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column", gap: 6, boxSizing: "border-box" }}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {entry.waist && (
                       <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
@@ -1411,7 +1411,7 @@ export function ProgressSection({ entries = [], onAdd }) {
                   </div>
 
                   {entry.notes && (
-                    <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: 0, wordBreak: "break-word", background: C.panelHi, padding: 8, borderRadius: 6, boxSizing: "border-box" }}>
+                    <p style={{ ...fontBody, fontSize: 12, color: C.text, margin: 0, wordBreak: "break-word", background: C.panelHi, padding: 6, borderRadius: 6, boxSizing: "border-box", width: "100%" }}>
                       {entry.notes}
                     </p>
                   )}
@@ -1535,9 +1535,9 @@ export default function App() {
   };
 
   return (
-    <>
+    <div style={{ width: "100%", maxWidth: "100vw", overflowX: "hidden", minHeight: "100vh", background: "#0f0f12", boxSizing: "border-box" }}>
       {!isOnline && (
-        <div style={{ background: C.danger, color: "#fff", textAlign: "center", padding: "6px", fontSize: 12, ...fontMono, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "sticky", top: 0, zIndex: 9999, boxSizing: "border-box" }}>
+        <div style={{ background: C.danger, color: "#fff", textAlign: "center", padding: "6px", fontSize: 12, ...fontMono, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "sticky", top: 0, zIndex: 9999, boxSizing: "border-box", width: "100%" }}>
           <WifiOff size={14} /> SEI OFFLINE: Visualizzazione dei dati salvati in memoria locale.
         </div>
       )}
@@ -1562,6 +1562,6 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
-    </>
+    </div>
   );
 }
