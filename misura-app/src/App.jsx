@@ -1161,7 +1161,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   );
 }
 
-// ---------- Sezione Progressi Ottimizzata e Ridisegnata per Mobile ----------
+// ---------- Sezione Progressi Ottimizzata (Layout a prova di smartphone) ----------
 export function ProgressSection({ entries = [], onAdd }) {
   const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
@@ -1209,31 +1209,34 @@ export function ProgressSection({ entries = [], onAdd }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI & MISURAZIONI</h3>
-        <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 14px", fontSize: 12 }}>
-          <Plus size={15} /> Nuova Misurazione
+        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI</h3>
+        <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
+          <Plus size={15} /> Misurazione
         </button>
       </div>
 
       {showAdd && (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 18, boxSizing: "border-box" }}>
-          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 12px" }}>Registra Nuovo Aggiornamento</h4>
+          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 12px" }}>Nuovo Aggiornamento</h4>
           
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
             <Field label="Data" type="date" value={date} onChange={setDate} />
             <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
+          {/* Circonferenze disposte su 2 colonne per evitare sovrapposizioni su mobile */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
             <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
             <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 4 }}>
             <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
           </div>
 
-          <Field label="Note / Sensazioni" value={notes} onChange={setNotes} />
+          <Field label="Note" value={notes} onChange={setNotes} />
 
           <div style={{ margin: "12px 0 16px" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO PROGRESSO</label>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
             <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer", fontSize: 12, padding: "10px 14px", width: "100%", justifyContent: "center" }}>
               <Camera size={16} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
@@ -1249,7 +1252,7 @@ export function ProgressSection({ entries = [], onAdd }) {
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13, padding: "12px" }}>Salva Misurazione</button>
+            <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13, padding: "12px" }}>Salva</button>
             <button onClick={() => setShowAdd(false)} style={{ ...secondaryBtn, flex: 1, fontSize: 13, padding: "12px", justifyContent: "center" }}>Annulla</button>
           </div>
         </div>
@@ -1265,20 +1268,18 @@ export function ProgressSection({ entries = [], onAdd }) {
           {[...safeEntries].reverse().map((entry) => (
             <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
               
-              {/* Header card: Data e Peso */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
+              {/* Header card: Data e Peso con larghezza flessibile per evitare accavallamenti */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `1px solid ${C.border}`, paddingBottom: 8, gap: 12 }}>
                 <span style={{ ...fontMono, fontSize: 12, color: C.textDim, fontWeight: 600 }}>{fmtDate(entry.date)}</span>
-                <span style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{entry.weight} <span style={{ fontSize: 13, fontWeight: "normal", color: C.textDim }}>kg</span></span>
+                <span style={{ ...fontDisplay, fontSize: 20, color: C.positive, lineHeight: 1 }}>{entry.weight} <span style={{ fontSize: 13, fontWeight: "normal", color: C.textDim }}>kg</span></span>
               </div>
 
-              {/* Corpo card: Foto e Misurazioni */}
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                 {entry.photo && (
                   <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.border}` }} />
                 )}
                 
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                  {/* Circonferenze in badge ordinati */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {entry.waist && (
                       <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
