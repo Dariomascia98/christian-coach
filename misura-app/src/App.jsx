@@ -47,13 +47,15 @@ const fontMono = { fontFamily: "monospace" };
 const primaryBtn = {
   background: C.accent, color: "#fff", border: "none", borderRadius: 8,
   padding: "10px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
-  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+  boxSizing: "border-box"
 };
 
 const secondaryBtn = {
   background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8,
   padding: "10px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
-  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+  boxSizing: "border-box"
 };
 
 const iconBtn = {
@@ -307,7 +309,7 @@ function TrainerDashboard({ session, onLogout }) {
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {showNewClient && (
-          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16, boxSizing: "border-box" }}>
             <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "0 0 12px" }}>Aggiungi Nuovo Cliente</h3>
             <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
             <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
@@ -325,7 +327,7 @@ function TrainerDashboard({ session, onLogout }) {
         {loading ? (
           <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento clienti...</p>
         ) : clients.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
             <p style={{ ...fontBody, margin: 0 }}>Nessun cliente trovato o connessione assente.</p>
           </div>
         ) : (
@@ -523,7 +525,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   const calc = calcBmrTdee(form);
 
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>ANAMNESI & PARAMETRI</h3>
         {isTrainer && (
@@ -569,7 +571,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
       ) : (
         <div>
           {calc && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: C.panelHi, padding: 10, borderRadius: 10, marginBottom: 16, textAlign: "center" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: C.panelHi, padding: 10, borderRadius: 10, marginBottom: 16, textAlign: "center", boxSizing: "border-box" }}>
               <div>
                 <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>ETÀ</p>
                 <p style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "2px 0 0" }}>{calc.age}</p>
@@ -689,14 +691,14 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12, boxSizing: "border-box" }}>
       <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 420, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 16, boxSizing: "border-box" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Carichi — {exerciseName}</span>
           <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
         </div>
 
-        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 8, boxSizing: "border-box" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA PERFORMANCE</span>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             <Field label="Peso (kg)*" type="text" value={weight} onChange={setWeight} />
@@ -719,7 +721,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
             <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center", padding: 10 }}>Nessuna performance registrata per questo esercizio.</p>
           ) : (
             logs.map((log) => (
-              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box" }}>
                 <div>
                   <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                     <span style={{ ...fontDisplay, fontSize: 16, color: C.positive }}>{log.weight} kg</span>
@@ -892,10 +894,10 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       </div>
 
       {isTrainer && isEditing && (siblingClients || []).length > 0 && (
-        <div className="no-print" style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div className="no-print" style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", boxSizing: "border-box" }}>
           <Copy size={14} color={C.accent} />
           <span style={{ fontSize: 12, color: C.textDim }}>Copia da:</span>
-          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 8px", borderRadius: 6, fontSize: 12, flex: 1 }}>
+          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 8px", borderRadius: 6, fontSize: 12, flex: 1, boxSizing: "border-box" }}>
             <option value="" disabled>Seleziona cliente...</option>
             {siblingClients.filter((c) => c.id !== clientId).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
@@ -913,7 +915,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                 background: activeDayIdx === idx ? C.panelHi : C.panel,
                 border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
                 color: activeDayIdx === idx ? C.text : C.textDim,
-                ...fontBody, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0
+                ...fontBody, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, boxSizing: "border-box"
               }}
             >
               {day.label || `Giorno ${idx + 1}`}
@@ -928,7 +930,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {days.length === 0 ? (
-        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
           <Dumbbell size={26} color={C.textDim} style={{ marginBottom: 6 }} />
           <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessun giorno di allenamento trovato.</p>
           {isTrainer && (
@@ -938,13 +940,13 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
         </div>
       ) : currentDay ? (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, boxSizing: "border-box" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8 }}>
             {isEditing ? (
               <input
                 value={currentDay.label || ""}
                 onChange={(e) => patchDay(activeDayIdx, (day) => ({ ...day, label: e.target.value }))}
-                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 6, ...fontDisplay, fontSize: 16, width: "75%" }}
+                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 6, ...fontDisplay, fontSize: 16, width: "75%", boxSizing: "border-box" }}
               />
             ) : (
               <h2 style={{ ...fontDisplay, fontSize: 17, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
@@ -971,7 +973,8 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                       padding: "4px 6px", borderRadius: 6, fontSize: 10, ...fontMono, cursor: "pointer",
                       border: `1px solid ${active ? C.accent : C.border}`,
                       background: active ? C.accentSoft : C.panelHi,
-                      color: active ? C.accent : C.textDim
+                      color: active ? C.accent : C.textDim,
+                      boxSizing: "border-box"
                     }}
                   >
                     {w.label}
@@ -983,7 +986,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
           {(currentDay.blocks || []).map((block, bIdx) => (
             <div key={block.id || bIdx} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6, boxSizing: "border-box" }}>
                 <span style={{ ...fontMono, fontSize: 10, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1}</span>
                 {isEditing && (
                   <button onClick={() => deleteBlock(activeDayIdx, bIdx)} style={iconBtn} title="Elimina blocco">
@@ -994,7 +997,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8 }}>
+                  <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8, boxSizing: "border-box" }}>
                     {isEditing ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -1002,7 +1005,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                             placeholder="Nome Esercizio" 
                             value={ex.name || ""} 
                             onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} 
-                            style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13 }} 
+                            style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" }} 
                           />
                           <button 
                             type="button"
@@ -1016,23 +1019,23 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                         </div>
 
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
+                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
                             <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>SERIE</span>
-                            <input value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none" }} />
+                            <input value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none", boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
+                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
                             <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>RIP</span>
-                            <input value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.positive, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none" }} />
+                            <input value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.positive, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none", boxSizing: "border-box" }} />
                           </div>
-                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
+                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
                             <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>REC</span>
-                            <input value={ex.rest || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none" }} />
+                            <input value={ex.rest || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none", boxSizing: "border-box" }} />
                           </div>
                         </div>
 
                         <div style={{ display: "flex", gap: 6 }}>
-                          <input placeholder="Link YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11 }} />
-                          <input placeholder="Note" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11 }} />
+                          <input placeholder="Link YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11, boxSizing: "border-box" }} />
+                          <input placeholder="Note" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11, boxSizing: "border-box" }} />
                         </div>
                       </div>
                     ) : (
@@ -1052,7 +1055,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                           </button>
                         </div>
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11, boxSizing: "border-box" }}>
                           <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
                           <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
                           <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
@@ -1082,7 +1085,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
       {/* Modale Ricerca Libreria Esercizi */}
       {isExerciseModalOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 12 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 12, boxSizing: "border-box" }}>
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 420, maxHeight: "85vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box" }}>
             
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -1107,7 +1110,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       padding: "10px", background: C.panelHi, borderRadius: 8, cursor: "pointer",
-                      border: `1px solid ${C.border}`
+                      border: `1px solid ${C.border}`, boxSizing: "border-box"
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
@@ -1132,7 +1135,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {activeVideoUrl && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12, boxSizing: "border-box" }}>
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 500, padding: 14, boxSizing: "border-box" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <span style={{ ...fontDisplay, color: C.text, fontSize: 15 }}>Video Dimostrativo</span>
@@ -1161,7 +1164,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   );
 }
 
-// ---------- Sezione Progressi (Layout Mobile a colonna fissa, Zero Sovrapposizioni) ----------
+// ---------- Sezione Progressi (Dinamica, Senza Box Pesanti e Senza Overflow) ----------
 export function ProgressSection({ entries = [], onAdd }) {
   const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
@@ -1207,7 +1210,7 @@ export function ProgressSection({ entries = [], onAdd }) {
   };
 
   return (
-    <div>
+    <div style={{ width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI</h3>
         <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
@@ -1216,33 +1219,34 @@ export function ProgressSection({ entries = [], onAdd }) {
       </div>
 
       {showAdd && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 18, boxSizing: "border-box" }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 18, width: "100%", boxSizing: "border-box" }}>
           <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 12px" }}>Nuovo Aggiornamento</h4>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4, width: "100%", boxSizing: "border-box" }}>
             <Field label="Data" type="date" value={date} onChange={setDate} />
             <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4, width: "100%", boxSizing: "border-box" }}>
             <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
             <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 4, width: "100%", boxSizing: "border-box" }}>
             <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
           </div>
 
           <Field label="Note" value={notes} onChange={setNotes} />
 
-          <div style={{ margin: "12px 0 16px" }}>
+          {/* Pulsante Foto con box-sizing corretto per evitare fuoriuscite */}
+          <div style={{ margin: "12px 0 16px", width: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
-            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer", fontSize: 12, padding: "10px 14px", width: "100%", justifyContent: "center" }}>
+            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "flex", cursor: "pointer", fontSize: 12, padding: "12px 14px", width: "100%", justifyContent: "center", alignItems: "center", boxSizing: "border-box" }}>
               <Camera size={16} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
             </label>
             {photo && (
               <div style={{ marginTop: 10, position: "relative", width: 90, height: 90, margin: "10px auto 0" }}>
-                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10, border: `1px solid ${C.border}` }} />
+                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10, border: `1px solid ${C.border}`, boxSizing: "border-box" }} />
                 <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -8, right: -8, background: C.danger, border: "none", borderRadius: "50%", color: "#fff", width: 22, height: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <X size={12} />
                 </button>
@@ -1250,7 +1254,7 @@ export function ProgressSection({ entries = [], onAdd }) {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, width: "100%", boxSizing: "border-box" }}>
             <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13, padding: "12px" }}>Salva</button>
             <button onClick={() => setShowAdd(false)} style={{ ...secondaryBtn, flex: 1, fontSize: 13, padding: "12px", justifyContent: "center" }}>Annulla</button>
           </div>
@@ -1258,16 +1262,16 @@ export function ProgressSection({ entries = [], onAdd }) {
       )}
 
       {safeEntries.length === 0 ? (
-        <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 14, border: `1px solid ${C.border}` }}>
+        <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 14, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
           <TrendingUp size={32} color={C.textDim} style={{ marginBottom: 8 }} />
           <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", boxSizing: "border-box" }}>
           {[...safeEntries].reverse().map((entry) => (
-            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10, width: "100%", boxSizing: "border-box" }}>
               
-              {/* Header card strutturato rigorosamente in colonna verticale per dispositivi mobili stretti */}
+              {/* Header card dinamico e pulito senza sovrapposizioni */}
               <div style={{ display: "flex", flexDirection: "column", gap: 2, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
                 <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: "uppercase" }}>Data misurazione</span>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -1278,32 +1282,32 @@ export function ProgressSection({ entries = [], onAdd }) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", width: "100%", boxSizing: "border-box" }}>
                 {entry.photo && (
-                  <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.border}` }} />
+                  <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.border}`, boxSizing: "border-box" }} />
                 )}
                 
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {entry.waist && (
-                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
                         Vita: <strong>{entry.waist}</strong> cm
                       </span>
                     )}
                     {entry.chest && (
-                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
                         Petto: <strong>{entry.chest}</strong> cm
                       </span>
                     )}
                     {entry.hips && (
-                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
                         Fianchi: <strong>{entry.hips}</strong> cm
                       </span>
                     )}
                   </div>
 
                   {entry.notes && (
-                    <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: 0, wordBreak: "break-word", background: C.panelHi, padding: 8, borderRadius: 6 }}>
+                    <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: 0, wordBreak: "break-word", background: C.panelHi, padding: 8, borderRadius: 6, boxSizing: "border-box" }}>
                       {entry.notes}
                     </p>
                   )}
@@ -1429,7 +1433,7 @@ export default function App() {
   return (
     <>
       {!isOnline && (
-        <div style={{ background: C.danger, color: "#fff", textAlign: "center", padding: "6px", fontSize: 12, ...fontMono, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "sticky", top: 0, zIndex: 9999 }}>
+        <div style={{ background: C.danger, color: "#fff", textAlign: "center", padding: "6px", fontSize: 12, ...fontMono, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "sticky", top: 0, zIndex: 9999, boxSizing: "border-box" }}>
           <WifiOff size={14} /> SEI OFFLINE: Visualizzazione dei dati salvati in memoria locale.
         </div>
       )}
