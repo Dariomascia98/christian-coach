@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import {
   Save, Edit2, Check, Printer, Copy, Plus, Trash2,
-  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search, WifiOff
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search, WifiOff, Sparkles
 } from 'lucide-react';
 
 /* ============================================================
@@ -15,7 +15,7 @@ import {
    - tabella "exercises": id, name, category, image_url, trainer_id
    - tabella "progress_entries": id, client_id, date, weight, waist,
      chest, hips, notes, photo (url o base64)
-   - tabella "loads": id, client_id, exercise_name, weight, reps, date, notes
+   - tabella "loads": id, client_id, exercise_name, weight, reps, date, notes, sets (jsonb)
    ============================================================ */
 
 // --- Utility e Costanti Globali ---
@@ -63,9 +63,9 @@ const iconBtn = {
 };
 
 const inputStyle = {
-  display: "block", width: "100%", marginTop: 4, padding: "12px 14px",
+  display: "block", width: "100%", marginTop: 4, padding: "10px 12px",
   background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
-  color: C.text, ...fontBody, fontSize: 14, outline: "none", boxSizing: "border-box"
+  color: C.text, ...fontBody, fontSize: 13, outline: "none", boxSizing: "border-box"
 };
 
 const WEEKDAYS = [
@@ -83,7 +83,7 @@ const ACTIVITY_LEVELS = [
 
 function Field({ label, type = "text", value, onChange }) {
   return (
-    <div style={{ marginBottom: 10 }}>
+    <div style={{ marginBottom: 10, width: "100%", boxSizing: "border-box" }}>
       <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{(label || "").toUpperCase()}</label>
       <input
         type={type}
@@ -176,7 +176,7 @@ function AuthScreen({ onLoggedIn }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box" }}>
       <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360, boxSizing: "border-box" }}>
         <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px", textAlign: "center" }}>CHRIS COACH</h1>
         <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px", textAlign: "center" }}>
@@ -307,7 +307,7 @@ function TrainerDashboard({ session, onLogout }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", boxSizing: "border-box" }}>
         {showNewClient && (
           <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16, boxSizing: "border-box" }}>
             <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "0 0 12px" }}>Aggiungi Nuovo Cliente</h3>
@@ -338,7 +338,7 @@ function TrainerDashboard({ session, onLogout }) {
                 onClick={() => setSelectedClientId(c.id)}
                 style={{
                   ...secondaryBtn, justifyContent: "space-between", padding: 14, textAlign: "left",
-                  width: "100%", alignItems: "center", background: C.panel
+                  width: "100%", alignItems: "center", background: C.panel, boxSizing: "border-box"
                 }}
               >
                 <div>
@@ -432,7 +432,7 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 12, boxSizing: "border-box" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", boxSizing: "border-box" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}>
           {isTrainer ? (
             <button onClick={onBack} style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 12 }}>← Clienti</button>
@@ -536,22 +536,18 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
       </div>
 
       {editing ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
-            <div>
-              <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
-              <select value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })} style={inputStyle}>
-                <option value="M">Uomo (M)</option>
-                <option value="F">Donna (F)</option>
-              </select>
-            </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box" }}>
+          <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
+          <div>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
+            <select value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })} style={inputStyle}>
+              <option value="M">Uomo (M)</option>
+              <option value="F">Donna (F)</option>
+            </select>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
-            <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
-          </div>
+          <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
+          <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
 
           <div>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
@@ -587,19 +583,17 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div>
-              <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ALTEZZA / PESO</p>
-              <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
-                {form.heightCm ? `${form.heightCm} cm` : "—"} / {form.startingWeight ? `${form.startingWeight} kg` : "—"}
-              </p>
-            </div>
-            <div>
-              <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ATTIVITÀ</p>
-              <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
-                {ACTIVITY_LEVELS.find((a) => a.value === form.activityLevel)?.label || form.activityLevel || "—"}
-              </p>
-            </div>
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ALTEZZA / PESO</p>
+            <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
+              {form.heightCm ? `${form.heightCm} cm` : "—"} / {form.startingWeight ? `${form.startingWeight} kg` : "—"}
+            </p>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ATTIVITÀ</p>
+            <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
+              {ACTIVITY_LEVELS.find((a) => a.value === form.activityLevel)?.label || form.activityLevel || "—"}
+            </p>
           </div>
 
           <div style={{ marginBottom: 10 }}>
@@ -622,13 +616,16 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Modale Carichi ----------
+// ---------- Modale Carichi con Gestione Multi-Serie (Stile MyFitCoach) ----------
 function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [weight, setWeight] = useState("");
-  const [reps, setReps] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [setsData, setSetsData] = useState([
+    { setNum: 1, weight: "", reps: "" },
+    { setNum: 2, weight: "", reps: "" },
+    { setNum: 3, weight: "", reps: "" }
+  ]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -659,61 +656,112 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
     if (clientId && exerciseName) fetchLogs();
   }, [clientId, exerciseName]);
 
+  // Pre-compila l'ultima serie inserita per comodità quando si aggiunge una nuova riga
+  const handleAddSetRow = () => {
+    const lastSet = setsData[setsData.length - 1] || { weight: "", reps: "" };
+    setSetsData([...setsData, { setNum: setsData.length + 1, weight: lastSet.weight, reps: "" }]);
+  };
+
+  const handleRemoveSetRow = (index) => {
+    if (setsData.length === 1) return;
+    const updated = setsData.filter((_, i) => i !== index).map((s, idx) => ({ ...s, setNum: idx + 1 }));
+    setSetsData(updated);
+  };
+
+  const handleSetChange = (index, field, val) => {
+    const updated = [...setsData];
+    updated[index][field] = val;
+    setSetsData(updated);
+  };
+
   const handleAddLog = async (e) => {
     e.preventDefault();
-    if (!weight) return;
+    if (setsData.some(s => !s.weight)) {
+      alert("Inserisci il peso per tutte le serie.");
+      return;
+    }
     setSubmitting(true);
+
     const newLog = {
       id: uid(),
       client_id: clientId,
       exercise_name: exerciseName,
-      weight,
-      reps,
       date,
+      sets: setsData, // Salvataggio strutturato in multi-serie
+      weight: setsData[0]?.weight || 0, // Fallback retrocompatibilità
+      reps: setsData[0]?.reps || 0,     // Fallback retrocompatibilità
       notes
     };
 
     try {
-      const { error } = await supabase.from('loads').insert([newLog]);
+      const { error } = await supabase.from('loads'].insert([newLog]);
       if (error) throw error;
     } catch (err) {
-      console.warn("Offline: carico salvato localmente", err);
+      console.warn("Offline: carico multi-serie salvato localmente", err);
     }
 
     const updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
     localStorage.setItem(`cache_loads_${clientId}_${exerciseName}`, JSON.stringify(updatedLogs));
 
-    setWeight("");
-    setReps("");
+    // Reset parziale
     setNotes("");
     setSubmitting(false);
   };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12, boxSizing: "border-box" }}>
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 420, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 16, boxSizing: "border-box" }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 460, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 16, boxSizing: "border-box" }}>
+        
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Carichi — {exerciseName}</span>
+          <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Carichi & Serie — {exerciseName}</span>
           <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
         </div>
 
-        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 8, boxSizing: "border-box" }}>
-          <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA PERFORMANCE</span>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            <Field label="Peso (kg)*" type="text" value={weight} onChange={setWeight} />
-            <Field label="Ripetizioni" type="text" value={reps} onChange={setReps} />
+        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box" }}>
+          <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA SESSIONE MULTI-SERIE</span>
+          
+          <Field label="Data" type="date" value={date} onChange={setDate} />
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SERIE ESEGUITE</label>
+            {setsData.map((s, idx) => (
+              <div key={idx} style={{ display: "flex", gap: 6, alignItems: "center", boxSizing: "border-box" }}>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, width: 42 }}>#{s.setNum}</span>
+                <input
+                  type="text"
+                  placeholder="Kg"
+                  value={s.weight}
+                  onChange={(e) => handleSetChange(idx, "weight", e.target.value)}
+                  style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
+                />
+                <input
+                  type="text"
+                  placeholder="Rip"
+                  value={s.reps}
+                  onChange={(e) => handleSetChange(idx, "reps", e.target.value)}
+                  style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
+                />
+                {setsData.length > 1 && (
+                  <button type="button" onClick={() => handleRemoveSetRow(idx)} style={{ ...iconBtn, padding: 4 }}>
+                    <Trash2 size={14} color={C.danger} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={handleAddSetRow} style={{ ...secondaryBtn, fontSize: 11, padding: "6px", marginTop: 4, justifyContent: "center" }}>
+              <Plus size={13} /> Aggiungi Serie
+            </button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
-            <Field label="Data" type="date" value={date} onChange={setDate} />
-            <Field label="Note (es. RPE, sensazioni)" type="text" value={notes} onChange={setNotes} />
-          </div>
+
+          <Field label="Note (es. RPE, sensazioni)" type="text" value={notes} onChange={setNotes} />
+
           <button type="submit" disabled={submitting} style={{ ...primaryBtn, width: "100%", marginTop: 4, opacity: submitting ? 0.7 : 1 }}>
-            <Plus size={14} /> {submitting ? "Salvataggio..." : "Aggiungi Carico"}
+            <Plus size={14} /> {submitting ? "Salvataggio..." : "Salva Performance Sessione"}
           </button>
         </form>
 
-        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, WebkitOverflowScrolling: "touch" }}>
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, WebkitOverflowScrolling: "touch" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.textDim, marginBottom: 2 }}>STORICO PRECEDENTE</span>
           {loading ? (
             <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center" }}>Caricamento storico...</p>
@@ -721,15 +769,22 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
             <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center", padding: 10 }}>Nessuna performance registrata per questo esercizio.</p>
           ) : (
             logs.map((log) => (
-              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", boxSizing: "border-box" }}>
-                <div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                    <span style={{ ...fontDisplay, fontSize: 16, color: C.positive }}>{log.weight} kg</span>
-                    {log.reps && <span style={{ ...fontBody, fontSize: 13, color: C.text }}>× {log.reps} rip</span>}
-                  </div>
-                  {log.notes && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, display: "block", marginTop: 2 }}>{log.notes}</span>}
+              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 4, boxSizing: "border-box" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 600 }}>{fmtDate(log.date)}</span>
+                  {log.notes && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic" }}>{log.notes}</span>}
                 </div>
-                <span style={{ ...fontMono, fontSize: 10, color: C.textDim }}>{fmtDate(log.date)}</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                  {log.sets && Array.isArray(log.sets) ? (
+                    log.sets.map((s, sIdx) => (
+                      <span key={sIdx} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 11, ...fontMono, color: C.text }}>
+                        #{s.setNum}: <strong style={{ color: C.positive }}>{s.weight}kg</strong> {s.reps ? `× ${s.reps}` : ""}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{ ...fontBody, fontSize: 13, color: C.positive }}>{log.weight} kg × {log.reps} rip</span>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -739,7 +794,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   );
 }
 
-// ---------- Program Section ----------
+// ---------- Program Section (con Progressione Smart basata sull'ultima serie) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
@@ -747,6 +802,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(""); 
+  const [loadsMap, setLoadsMap] = useState({});
   
   const saveTimeoutRef = useRef(null);
 
@@ -757,6 +813,68 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
+
+  useEffect(() => {
+    if (!clientId) return;
+    async function loadClientLoads() {
+      try {
+        const { data, error } = await supabase
+          .from('loads')
+          .select('*')
+          .eq('client_id', clientId)
+          .order('date', { ascending: false });
+        if (error) throw error;
+        if (data) {
+          const map = {};
+          data.forEach((log) => {
+            if (!map[log.exercise_name]) map[log.exercise_name] = [];
+            map[log.exercise_name].push(log);
+          });
+          setLoadsMap(map);
+        }
+      } catch (err) {
+        console.warn("Impossibile caricare i carichi per la progressione", err);
+      }
+    }
+    loadClientLoads();
+  }, [clientId]);
+
+  // Algoritmo MyFitCoach di progressione calcolato sull'ultima performance multi-serie
+  const getSmartProgression = (exName, targetRepsStr) => {
+    const history = loadsMap[exName];
+    if (!history || history.length === 0) return null;
+    const last = history[0];
+    
+    // Ricava l'ultima serie registrata o la serie di punta
+    let lastWeight = 0;
+    let lastReps = 0;
+    if (last.sets && Array.isArray(last.sets) && last.sets.length > 0) {
+      const targetSet = last.sets[last.sets.length - 1]; // Prende l'ultima serie della sessione
+      lastWeight = parseFloat(targetSet.weight) || 0;
+      lastReps = parseInt(targetSet.reps) || 0;
+    } else {
+      lastWeight = parseFloat(last.weight) || 0;
+      lastReps = parseInt(last.reps) || 0;
+    }
+
+    let targetMax = 10;
+    if (targetRepsStr) {
+      const parts = targetRepsStr.split('-');
+      targetMax = parseInt(parts[parts.length - 1]) || 10;
+    }
+
+    if (lastReps >= targetMax) {
+      return {
+        suggestedWeight: lastWeight + 2.5,
+        msg: `🎯 Target raggiunto (${lastReps}/${targetMax} rip)! Consigliato +2.5 kg`
+      };
+    } else {
+      return {
+        suggestedWeight: lastWeight,
+        msg: `💪 Ultimo: ${lastWeight}kg × ${lastReps} (Puntiamo a ${targetMax} rip)`
+      };
+    }
+  };
 
   const handleUpdateProgram = (newDays) => {
     if (!clientId) {
@@ -996,75 +1114,75 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8, boxSizing: "border-box" }}>
-                    {isEditing ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                          <input 
-                            placeholder="Nome Esercizio" 
-                            value={ex.name || ""} 
-                            onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} 
-                            style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" }} 
-                          />
-                          <button 
-                            type="button"
-                            onClick={() => openExerciseLibrary(bIdx, exIdx)} 
-                            style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 11, flexShrink: 0 }}
-                            title="Libreria"
-                          >
-                            <Search size={13} />
-                          </button>
-                          <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={15} color={C.danger} /></button>
-                        </div>
+                {(block.exercises || []).map((ex, exIdx) => {
+                  const smartProg = !isEditing && ex.name ? getSmartProgression(ex.name, ex.reps) : null;
+                  return (
+                    <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8, boxSizing: "border-box" }}>
+                      {isEditing ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <input 
+                              placeholder="Nome Esercizio" 
+                              value={ex.name || ""} 
+                              onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} 
+                              style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13, boxSizing: "border-box" }} 
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => openExerciseLibrary(bIdx, exIdx)} 
+                              style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 11, flexShrink: 0 }}
+                              title="Libreria"
+                            >
+                              <Search size={13} />
+                            </button>
+                            <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={15} color={C.danger} /></button>
+                          </div>
 
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
-                            <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>SERIE</span>
-                            <input value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none", boxSizing: "border-box" }} />
-                          </div>
-                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
-                            <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>RIP</span>
-                            <input value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.positive, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none", boxSizing: "border-box" }} />
-                          </div>
-                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, boxSizing: "border-box" }}>
-                            <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>REC</span>
-                            <input value={ex.rest || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none", boxSizing: "border-box" }} />
-                          </div>
+                          <Field label="Serie" type="text" value={ex.sets} onChange={(v) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: v }))} />
+                          <Field label="Ripetizioni" type="text" value={ex.reps} onChange={(v) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: v }))} />
+                          <Field label="Recupero" type="text" value={ex.rest} onChange={(v) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: v }))} />
+                          <Field label="Link YouTube" type="text" value={ex.videoUrl} onChange={(v) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: v }))} />
+                          <Field label="Note" type="text" value={ex.note} onChange={(v) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: v }))} />
                         </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                              {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
+                              <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13, wordBreak: "break-word" }}>{ex.name || "Esercizio"}</span>
+                              {ex.videoUrl && (
+                                <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Video">
+                                  <PlayCircle size={16} color={C.accent} />
+                                </button>
+                              )}
+                            </div>
+                            <button onClick={() => setActiveLoadExercise(ex.name)} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 11, flexShrink: 0 }}>
+                              <Dumbbell size={12} /> Carichi
+                            </button>
+                          </div>
 
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <input placeholder="Link YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11, boxSizing: "border-box" }} />
-                          <input placeholder="Note" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11, boxSizing: "border-box" }} />
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                            {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
-                            <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13, wordBreak: "break-word" }}>{ex.name || "Esercizio"}</span>
-                            {ex.videoUrl && (
-                              <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Video">
-                                <PlayCircle size={16} color={C.accent} />
-                              </button>
-                            )}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11, boxSizing: "border-box" }}>
+                            <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
+                            <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
+                            <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
                           </div>
-                          <button onClick={() => setActiveLoadExercise(ex.name)} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 11, flexShrink: 0 }}>
-                            <Dumbbell size={12} /> Carichi
-                          </button>
-                        </div>
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11, boxSizing: "border-box" }}>
-                          <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
-                          <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
-                          <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
+                          {smartProg && (
+                            <div style={{ background: C.accentSoft, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "6px 8px", display: "flex", alignItems: "center", gap: 6, boxSizing: "border-box" }}>
+                              <Sparkles size={14} color={C.accent} style={{ flexShrink: 0 }} />
+                              <div style={{ ...fontBody, fontSize: 11, color: C.text }}>
+                                <span style={{ fontWeight: 700, color: C.accent }}>Consiglio: </span>
+                                {smartProg.msg} (Peso suggerito oggi: <strong>{smartProg.suggestedWeight} kg</strong>)
+                              </div>
+                            </div>
+                          )}
+
+                          {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic" }}>Note: {ex.note}</span>}
                         </div>
-                        {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic" }}>Note: {ex.note}</span>}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
 
                 {isEditing && (
                   <button onClick={() => addExercise(activeDayIdx, bIdx)} style={{ ...secondaryBtn, justifyContent: "center", fontSize: 12, padding: "8px", borderStyle: "dashed", width: "100%", marginTop: 4 }}>
@@ -1164,7 +1282,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   );
 }
 
-// ---------- Sezione Progressi (Dinamica, Senza Box Pesanti e Senza Overflow) ----------
+// ---------- Sezione Progressi ----------
 export function ProgressSection({ entries = [], onAdd }) {
   const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
@@ -1220,25 +1338,16 @@ export function ProgressSection({ entries = [], onAdd }) {
 
       {showAdd && (
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 18, width: "100%", boxSizing: "border-box" }}>
-          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 12px" }}>Nuovo Aggiornamento</h4>
+          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 14px" }}>Nuovo Aggiornamento</h4>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4, width: "100%", boxSizing: "border-box" }}>
-            <Field label="Data" type="date" value={date} onChange={setDate} />
-            <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4, width: "100%", boxSizing: "border-box" }}>
-            <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
-            <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 4, width: "100%", boxSizing: "border-box" }}>
-            <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
-          </div>
-
+          <Field label="Data" type="date" value={date} onChange={setDate} />
+          <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
+          <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
+          <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
+          <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
           <Field label="Note" value={notes} onChange={setNotes} />
 
-          {/* Pulsante Foto con box-sizing corretto per evitare fuoriuscite */}
-          <div style={{ margin: "12px 0 16px", width: "100%", boxSizing: "border-box" }}>
+          <div style={{ margin: "14px 0 18px", width: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
             <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "flex", cursor: "pointer", fontSize: 12, padding: "12px 14px", width: "100%", justifyContent: "center", alignItems: "center", boxSizing: "border-box" }}>
@@ -1271,7 +1380,6 @@ export function ProgressSection({ entries = [], onAdd }) {
           {[...safeEntries].reverse().map((entry) => (
             <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10, width: "100%", boxSizing: "border-box" }}>
               
-              {/* Header card dinamico e pulito senza sovrapposizioni */}
               <div style={{ display: "flex", flexDirection: "column", gap: 2, borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
                 <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: "uppercase" }}>Data misurazione</span>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
