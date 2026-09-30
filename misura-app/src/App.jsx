@@ -45,22 +45,22 @@ const fontMono = { fontFamily: "monospace" };
 
 const primaryBtn = {
   background: C.accent, color: "#fff", border: "none", borderRadius: 8,
-  padding: "8px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
-  display: "inline-flex", alignItems: "center", gap: 6
+  padding: "10px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6
 };
 
 const secondaryBtn = {
   background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8,
-  padding: "8px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
-  display: "inline-flex", alignItems: "center", gap: 6
+  padding: "10px 14px", ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6
 };
 
 const iconBtn = {
-  background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center"
+  background: "transparent", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", justifyContent: "center"
 };
 
 const inputStyle = {
-  display: "block", width: "100%", marginTop: 6, padding: "10px 12px",
+  display: "block", width: "100%", marginTop: 4, padding: "12px 14px",
   background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
   color: C.text, ...fontBody, fontSize: 14, outline: "none", boxSizing: "border-box"
 };
@@ -80,7 +80,7 @@ const ACTIVITY_LEVELS = [
 
 function Field({ label, type = "text", value, onChange }) {
   return (
-    <div>
+    <div style={{ marginBottom: 10 }}>
       <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{(label || "").toUpperCase()}</label>
       <input
         type={type}
@@ -173,27 +173,25 @@ function AuthScreen({ onLoggedIn }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 28, width: "100%", maxWidth: 380 }}>
-        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px" }}>CHRIS COACH</h1>
-        <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px" }}>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <form onSubmit={handleSubmit} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360, boxSizing: "border-box" }}>
+        <h1 style={{ ...fontDisplay, fontSize: 24, color: C.text, margin: "0 0 4px", textAlign: "center" }}>CHRIS COACH</h1>
+        <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: "0 0 20px", textAlign: "center" }}>
           {mode === "login" ? "Accedi al tuo account" : "Crea un nuovo account"}
         </p>
 
-        <div style={{ marginBottom: 12 }}>
-          <Field label="Email" type="email" value={email} onChange={setEmail} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <Field label="Password" type="password" value={password} onChange={setPassword} />
-        </div>
+        <Field label="Email" type="email" value={email} onChange={setEmail} />
+        <Field label="Password" type="password" value={password} onChange={setPassword} />
 
         {errorMsg && (
-          <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{errorMsg}</p>
+          <p style={{ ...fontBody, fontSize: 13, color: C.danger, margin: "8px 0 12px", textAlign: "center" }}>{errorMsg}</p>
         )}
 
-        <button type="submit" disabled={loading} style={{ ...primaryBtn, width: "100%", justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
-          {loading ? "Attendere..." : mode === "login" ? "Accedi" : "Registrati"}
-        </button>
+        <div style={{ marginTop: 16 }}>
+          <button type="submit" disabled={loading} style={{ ...primaryBtn, width: "100%", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Attendere..." : mode === "login" ? "Accedi" : "Registrati"}
+          </button>
+        </div>
 
         <button
           type="button"
@@ -286,14 +284,14 @@ function TrainerDashboard({ session, onLogout }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, maxWidth: 900, margin: "0 auto 24px" }}>
-        <h1 style={{ ...fontDisplay, fontSize: 26, color: C.text, margin: 0 }}>I TUOI CLIENTI</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowNewClient(!showNewClient)} style={primaryBtn}>
-            <UserPlus size={16} /> Nuovo Cliente
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 16, boxSizing: "border-box" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, maxWidth: 900, margin: "0 auto 20px" }}>
+        <h1 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>I TUOI CLIENTI</h1>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => setShowNewClient(!showNewClient)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
+            <UserPlus size={15} /> Nuovo
           </button>
-          <button onClick={onLogout} style={secondaryBtn}>
+          <button onClick={onLogout} style={{ ...secondaryBtn, padding: "8px 12px", fontSize: 12 }}>
             <LogOut size={15} /> Esci
           </button>
         </div>
@@ -301,18 +299,16 @@ function TrainerDashboard({ session, onLogout }) {
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {showNewClient && (
-          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
-            <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: "0 0 14px" }}>Aggiungi Nuovo Cliente</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-              <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
-              <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <Field label="Password temporanea (opzionale)" type="text" value={newClientPassword} onChange={setNewClientPassword} />
-              <span style={{ fontSize: 11, color: C.textDim, marginTop: 4, display: "block" }}>Se la lasci vuota, verrà generata automaticamente dal server.</span>
-            </div>
+          <form onSubmit={handleCreateClient} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "0 0 12px" }}>Aggiungi Nuovo Cliente</h3>
+            <Field label="Nome completo" value={newClientName} onChange={setNewClientName} />
+            <Field label="Email cliente" type="email" value={newClientEmail} onChange={setNewClientEmail} />
+            <Field label="Password temporanea (opzionale)" type="text" value={newClientPassword} onChange={setNewClientPassword} />
+            <span style={{ fontSize: 11, color: C.textDim, margin: "-6px 0 12px", display: "block" }}>Se vuota, sarà generata in automatico.</span>
+            
             {createError && <p style={{ ...fontBody, fontSize: 13, color: C.danger, marginBottom: 12 }}>{createError}</p>}
-            <button type="submit" disabled={creating} style={{ ...primaryBtn, opacity: creating ? 0.7 : 1 }}>
+            
+            <button type="submit" disabled={creating} style={{ ...primaryBtn, width: "100%", opacity: creating ? 0.7 : 1 }}>
               {creating ? "Creazione..." : "Crea Cliente"}
             </button>
           </form>
@@ -321,24 +317,27 @@ function TrainerDashboard({ session, onLogout }) {
         {loading ? (
           <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento clienti...</p>
         ) : clients.length === 0 ? (
-          <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
             <p style={{ ...fontBody, margin: 0 }}>Nessun cliente ancora. Aggiungine uno per iniziare.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
             {clients.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setSelectedClientId(c.id)}
                 style={{
-                  ...secondaryBtn, justifyContent: "flex-start", padding: 16, textAlign: "left",
-                  flexDirection: "column", alignItems: "flex-start", gap: 4
+                  ...secondaryBtn, justifyContent: "space-between", padding: 14, textAlign: "left",
+                  width: "100%", alignItems: "center", background: C.panel
                 }}
               >
-                <span style={{ ...fontDisplay, fontSize: 16, color: C.text }}>{c.name}</span>
-                <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>
-                  {c.intake?.goal || "Obiettivo non impostato"}
-                </span>
+                <div>
+                  <span style={{ ...fontDisplay, fontSize: 15, color: C.text, display: "block" }}>{c.name}</span>
+                  <span style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginTop: 2 }}>
+                    {c.intake?.goal || "Obiettivo non impostato"}
+                  </span>
+                </div>
+                <span style={{ color: C.accent, fontSize: 16 }}>→</span>
               </button>
             ))}
           </div>
@@ -399,35 +398,38 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 24 }}>
+    <div style={{ minHeight: "100vh", background: "#0f0f12", padding: 12, boxSizing: "border-box" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8 }}>
           {isTrainer ? (
-            <button onClick={onBack} style={secondaryBtn}>← Torna ai clienti</button>
+            <button onClick={onBack} style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 12 }}>← Clienti</button>
           ) : (
-            <button onClick={onLogout} style={secondaryBtn}>
-              <LogOut size={15} /> Esci
+            <button onClick={onLogout} style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 12 }}>
+              <LogOut size={14} /> Esci
             </button>
           )}
-          <div className="no-print" style={{ display: "flex", gap: 8 }}>
+          <div className="no-print" style={{ display: "flex", gap: 4 }}>
             {["intake", "program", "progress"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 style={{
                   ...secondaryBtn,
+                  padding: "8px 10px",
+                  fontSize: 12,
                   borderColor: tab === t ? C.accent : C.border,
-                  color: tab === t ? C.accent : C.text
+                  color: tab === t ? C.accent : C.text,
+                  background: tab === t ? C.panelHi : C.panel
                 }}
               >
-                {t === "intake" ? "Anamnesi" : t === "program" ? "Programma" : "Progressi"}
+                {t === "intake" ? "Scheda" : t === "program" ? "Programma" : "Progressi"}
               </button>
             ))}
           </div>
         </div>
 
         {loadingData ? (
-          <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento...</p>
+          <p style={{ ...fontBody, color: C.textDim, textAlign: "center", marginTop: 40 }}>Caricamento...</p>
         ) : (
           <>
             {tab === "intake" && (
@@ -490,19 +492,19 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   const calc = calcBmrTdee(form);
 
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>SCHEDA ANAMNESI</h3>
+    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>ANAMNESI & PARAMETRI</h3>
         {isTrainer && (
-          <button onClick={() => { if (editing) handleSave(); else setEditing(true); }} style={secondaryBtn}>
-            {editing ? <><Save size={14} /> Salva</> : <><Edit2 size={14} /> Modifica</>}
+          <button onClick={() => { if (editing) handleSave(); else setEditing(true); }} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 12 }}>
+            {editing ? <><Save size={13} /> Salva</> : <><Edit2 size={13} /> Modifica</>}
           </button>
         )}
       </div>
 
       {editing ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
             <div>
               <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
@@ -513,7 +515,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Field label="Altezza (cm)" type="number" value={form.heightCm} onChange={(v) => setForm({ ...form, heightCm: v })} />
             <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
           </div>
@@ -529,57 +531,57 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
           <Field label="Infortuni / Limitazioni fisiche" value={form.injuries} onChange={(v) => setForm({ ...form, injuries: v })} />
           <Field label="Note aggiuntive" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
 
-          <button onClick={handleSave} style={{ ...primaryBtn, marginTop: 10 }}>
-            <Save size={16} /> Salva Anamnesi
+          <button onClick={handleSave} style={{ ...primaryBtn, marginTop: 6, width: "100%" }}>
+            <Save size={15} /> Salva Anamnesi
           </button>
         </div>
       ) : (
         <div>
           {calc && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, background: C.panelHi, padding: 14, borderRadius: 10, marginBottom: 18 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: C.panelHi, padding: 10, borderRadius: 10, marginBottom: 16, textAlign: "center" }}>
               <div>
-                <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ETÀ</p>
-                <p style={{ ...fontDisplay, fontSize: 20, color: C.text, margin: "2px 0 0" }}>{calc.age} anni</p>
+                <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>ETÀ</p>
+                <p style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: "2px 0 0" }}>{calc.age}</p>
               </div>
               <div>
-                <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>BMR STIMATO</p>
-                <p style={{ ...fontDisplay, fontSize: 20, color: C.accent, margin: "2px 0 0" }}>{calc.bmr} kcal</p>
+                <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>BMR</p>
+                <p style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "2px 0 0" }}>{calc.bmr}</p>
               </div>
               <div>
-                <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>TDEE STIMATO</p>
-                <p style={{ ...fontDisplay, fontSize: 20, color: C.positive, margin: "2px 0 0" }}>{calc.tdee} kcal</p>
+                <p style={{ ...fontMono, fontSize: 9, color: C.textDim, margin: 0 }}>TDEE</p>
+                <p style={{ ...fontDisplay, fontSize: 16, color: C.positive, margin: "2px 0 0" }}>{calc.tdee}</p>
               </div>
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
             <div>
-              <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: 0 }}>ALTEZZA / PESO</p>
-              <p style={{ ...fontBody, fontSize: 14, color: C.text, margin: "4px 0 0" }}>
+              <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ALTEZZA / PESO</p>
+              <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
                 {form.heightCm ? `${form.heightCm} cm` : "—"} / {form.startingWeight ? `${form.startingWeight} kg` : "—"}
               </p>
             </div>
             <div>
-              <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: 0 }}>ATTIVITÀ</p>
-              <p style={{ ...fontBody, fontSize: 14, color: C.text, margin: "4px 0 0" }}>
+              <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>ATTIVITÀ</p>
+              <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>
                 {ACTIVITY_LEVELS.find((a) => a.value === form.activityLevel)?.label || form.activityLevel || "—"}
               </p>
             </div>
           </div>
 
-          <div style={{ marginBottom: 12 }}>
-            <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: 0 }}>OBIETTIVO</p>
-            <p style={{ ...fontBody, fontSize: 14, color: C.text, margin: "4px 0 0" }}>{form.goal || "Non specificato"}</p>
+          <div style={{ marginBottom: 10 }}>
+            <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>OBIETTIVO</p>
+            <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>{form.goal || "Non specificato"}</p>
           </div>
 
-          <div style={{ marginBottom: 12 }}>
-            <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: 0 }}>INFORTUNI / LIMITAZIONI</p>
-            <p style={{ ...fontBody, fontSize: 14, color: C.text, margin: "4px 0 0" }}>{form.injuries || "Nessuno segnalato"}</p>
+          <div style={{ marginBottom: 10 }}>
+            <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>INFORTUNI / LIMITAZIONI</p>
+            <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>{form.injuries || "Nessuno segnalato"}</p>
           </div>
 
           <div>
-            <p style={{ ...fontMono, fontSize: 11, color: C.textDim, margin: 0 }}>NOTE</p>
-            <p style={{ ...fontBody, fontSize: 14, color: C.text, margin: "4px 0 0" }}>{form.notes || "—"}</p>
+            <p style={{ ...fontMono, fontSize: 10, color: C.textDim, margin: 0 }}>NOTE</p>
+            <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "2px 0 0" }}>{form.notes || "—"}</p>
           </div>
         </div>
       )}
@@ -587,18 +589,17 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Program Section (Aggiornato con salvataggio sicuro e automatico) ----------
+// ---------- Program Section (Ottimizzato per Smartphone) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [activeVideoUrl, setActiveVideoUrl] = useState(null);
   const [activeLoadExercise, setActiveLoadExercise] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [saveStatus, setSaveStatus] = useState(""); // "saving" | "saved" | "error"
+  const [saveStatus, setSaveStatus] = useState(""); 
   
   const saveTimeoutRef = useRef(null);
 
-  // Stati per la Modale della Libreria Esercizi
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   const [exerciseList, setExerciseList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -607,10 +608,8 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
 
-  // Funzione di salvataggio sicuro con controllo client_id e onConflict
   const handleUpdateProgram = (newDays) => {
     if (!clientId) {
-      console.error("Errore: Impossibile salvare, ID cliente mancante.");
       setSaveStatus("error");
       return;
     }
@@ -626,7 +625,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
     saveTimeoutRef.current = setTimeout(async () => {
       const payload = { client_id: clientId, days: newDays };
-      
       if (safeProgram.id) {
         payload.id = safeProgram.id;
       }
@@ -636,11 +634,11 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         .upsert(payload, { onConflict: 'client_id' });
 
       if (error) {
-        console.error("Errore dettagliato Supabase:", error);
+        console.error("Errore Supabase:", error);
         setSaveStatus("error");
       } else {
         setSaveStatus("saved");
-        setTimeout(() => setSaveStatus(""), 2500);
+        setTimeout(() => setSaveStatus(""), 2000);
       }
     }, 1000);
   };
@@ -657,7 +655,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   };
 
   const deleteDay = (idx) => {
-    if (!window.confirm("Sei sicuro di voler eliminare questa giornata di allenamento?")) return;
+    if (!window.confirm("Eliminare questa giornata di allenamento?")) return;
     const updated = days.filter((_, i) => i !== idx);
     handleUpdateProgram(updated);
     if (activeDayIdx >= updated.length) setActiveDayIdx(Math.max(0, updated.length - 1));
@@ -686,27 +684,19 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   const openExerciseLibrary = async (bIdx, exIdx) => {
     setTargetExForModal({ bIdx, exIdx });
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('*')
-      .order('name', { ascending: true });
-    
-    if (!error && data) {
-      setExerciseList(data);
-    }
+    const { data, error } = await supabase.from('exercises').select('*').order('name', { ascending: true });
+    if (!error && data) setExerciseList(data);
     setIsExerciseModalOpen(true);
   };
 
   const selectExerciseFromLibrary = (exercise) => {
     if (!targetExForModal) return;
     const { bIdx, exIdx } = targetExForModal;
-    
     patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({
       ...item,
       name: exercise.name,
       imageUrl: exercise.image_url || item.imageUrl
     }));
-    
     setIsExerciseModalOpen(false);
     setTargetExForModal(null);
   };
@@ -714,40 +704,38 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const copyFromClient = async (sourceClientId) => {
     if (!sourceClientId) return;
     const p = await fetchProgram(sourceClientId);
-    if (p && p.days) {
-      if (window.confirm("Sostituire il programma corrente con quello selezionato?")) {
-        handleUpdateProgram(p.days);
-      }
+    if (p && p.days && window.confirm("Sostituire il programma con quello selezionato?")) {
+      handleUpdateProgram(p.days);
     }
   };
 
   return (
     <div>
-      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>
-          {isTrainer ? `PROGRAMMA DI ${(clientName || "").toUpperCase()}` : "IL TUO PROGRAMMA"}
+      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>
+          {isTrainer ? `PROGRAMMA` : "IL TUO PROGRAMMA"}
         </h3>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {saveStatus === "saving" && <span style={{ fontSize: 12, color: C.textDim }}>Salvataggio in corso...</span>}
-          {saveStatus === "saved" && <span style={{ fontSize: 12, color: C.positive, fontWeight: 600 }}>✓ Salvato</span>}
-          {saveStatus === "error" && <span style={{ fontSize: 12, color: C.danger, fontWeight: 600 }}>✕ Errore</span>}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {saveStatus === "saving" && <span style={{ fontSize: 11, color: C.textDim }}>Salvataggio...</span>}
+          {saveStatus === "saved" && <span style={{ fontSize: 11, color: C.positive, fontWeight: 600 }}>✓ Salvato</span>}
+          {saveStatus === "error" && <span style={{ fontSize: 11, color: C.danger, fontWeight: 600 }}>✕ Errore</span>}
 
-          <button onClick={() => window.print()} style={secondaryBtn} title="Stampa scheda">
-            <Printer size={15} /> Stampa
+          <button onClick={() => window.print()} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 12 }} title="Stampa">
+            <Printer size={14} /> Stampa
           </button>
           {isTrainer && (
-            <button onClick={() => setIsEditing(!isEditing)} style={{ ...secondaryBtn, borderColor: isEditing ? C.accent : C.border, color: isEditing ? C.accent : C.text }}>
-              {isEditing ? <Check size={15} /> : <Edit2 size={15} />} {isEditing ? "Fine Modifica" : "Modifica"}
+            <button onClick={() => setIsEditing(!isEditing)} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 12, borderColor: isEditing ? C.accent : C.border, color: isEditing ? C.accent : C.text }}>
+              {isEditing ? <Check size={14} /> : <Edit2 size={14} />} {isEditing ? "Fine" : "Modifica"}
             </button>
           )}
         </div>
       </div>
 
       {isTrainer && isEditing && (siblingClients || []).length > 0 && (
-        <div className="no-print" style={{ background: C.panelHi, padding: 12, borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-          <Copy size={16} color={C.accent} />
-          <span style={{ ...fontBody, fontSize: 13, color: C.textDim }}>Copia programma da:</span>
-          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 10px", borderRadius: 6, fontSize: 13 }}>
+        <div className="no-print" style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Copy size={14} color={C.accent} />
+          <span style={{ fontSize: 12, color: C.textDim }}>Copia da:</span>
+          <select onChange={(e) => copyFromClient(e.target.value)} defaultValue="" style={{ background: C.panel, color: C.text, border: `1px solid ${C.border}`, padding: "6px 8px", borderRadius: 6, fontSize: 12, flex: 1 }}>
             <option value="" disabled>Seleziona cliente...</option>
             {siblingClients.filter((c) => c.id !== clientId).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
@@ -755,69 +743,61 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {days.length > 0 && (
-        <div className="no-print" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16 }}>
+        <div className="no-print" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 12, WebkitOverflowScrolling: "touch" }}>
           {days.map((day, idx) => (
             <button
               key={day.id || idx}
               onClick={() => setActiveDayIdx(idx)}
               style={{
-                padding: "8px 14px", borderRadius: 8,
+                padding: "8px 12px", borderRadius: 8,
                 background: activeDayIdx === idx ? C.panelHi : C.panel,
                 border: `1px solid ${activeDayIdx === idx ? C.accent : C.border}`,
                 color: activeDayIdx === idx ? C.text : C.textDim,
-                ...fontBody, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap"
+                ...fontBody, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0
               }}
             >
               {day.label || `Giorno ${idx + 1}`}
             </button>
           ))}
           {isTrainer && isEditing && (
-            <button onClick={addDay} style={{ ...secondaryBtn, padding: "8px 12px" }}>
-              <Plus size={15} /> Giorno
+            <button onClick={addDay} style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 12, flexShrink: 0 }}>
+              <Plus size={14} /> Giorno
             </button>
           )}
         </div>
       )}
 
       {days.length === 0 ? (
-        <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-          <Dumbbell size={28} color={C.textDim} style={{ marginBottom: 8 }} />
-          <p style={{ ...fontBody, margin: 0 }}>
-            {isTrainer ? "Nessun giorno di allenamento ancora creato." : "Nessun programma ancora assegnato dal tuo trainer."}
-          </p>
+        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <Dumbbell size={26} color={C.textDim} style={{ marginBottom: 6 }} />
+          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessun giorno di allenamento creato.</p>
           {isTrainer && (
-            <button 
-              onClick={() => {
-                if (!isEditing) setIsEditing(true);
-                addDay();
-              }} 
-              style={{ ...primaryBtn, marginTop: 12 }}
-            >
-              <Plus size={16} /> Aggiungi Primo Giorno
+            <button onClick={() => { if (!isEditing) setIsEditing(true); addDay(); }} style={{ ...primaryBtn, marginTop: 10, fontSize: 12 }}>
+              <Plus size={15} /> Aggiungi Giorno
             </button>
           )}
         </div>
       ) : currentDay ? (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: `2px solid ${C.accent}`, paddingBottom: 8 }}>
             {isEditing ? (
               <input
                 value={currentDay.label || ""}
                 onChange={(e) => patchDay(activeDayIdx, (day) => ({ ...day, label: e.target.value }))}
-                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 4, ...fontDisplay, fontSize: 18 }}
+                style={{ background: C.panelHi, border: `1px solid ${C.border}`, color: C.text, padding: "4px 8px", borderRadius: 6, ...fontDisplay, fontSize: 16, width: "75%" }}
               />
             ) : (
-              <h2 style={{ ...fontDisplay, fontSize: 20, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
+              <h2 style={{ ...fontDisplay, fontSize: 17, color: C.accent, margin: 0 }}>{currentDay.label}</h2>
             )}
             {isEditing && (
               <button onClick={() => deleteDay(activeDayIdx)} style={iconBtn} title="Elimina Giorno">
-                <Trash2 size={16} color={C.accent} />
+                <Trash2 size={16} color={C.danger} />
               </button>
             )}
           </div>
 
           {isEditing && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 10, flexWrap: "wrap" }}>
               {WEEKDAYS.map((w) => {
                 const active = (currentDay.weekdays || []).includes(w.code);
                 return (
@@ -828,7 +808,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                       return { ...day, weekdays: active ? curWd.filter((c) => c !== w.code) : [...curWd, w.code] };
                     })}
                     style={{
-                      padding: "4px 8px", borderRadius: 6, fontSize: 11, ...fontMono, cursor: "pointer",
+                      padding: "4px 6px", borderRadius: 6, fontSize: 10, ...fontMono, cursor: "pointer",
                       border: `1px solid ${active ? C.accent : C.border}`,
                       background: active ? C.accentSoft : C.panelHi,
                       color: active ? C.accent : C.textDim
@@ -842,9 +822,9 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           )}
 
           {(currentDay.blocks || []).map((block, bIdx) => (
-            <div key={block.id || bIdx} style={{ marginBottom: 14 }}>
+            <div key={block.id || bIdx} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, marginBottom: 6 }}>
-                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1}</span>
+                <span style={{ ...fontMono, fontSize: 10, color: C.textDim, fontWeight: 700 }}>BLOCCO #{bIdx + 1}</span>
                 {isEditing && (
                   <button onClick={() => deleteBlock(activeDayIdx, bIdx)} style={iconBtn} title="Elimina blocco">
                     <Trash2 size={14} color={C.danger} />
@@ -852,73 +832,83 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                 )}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 4 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {(block.exercises || []).map((ex, exIdx) => (
-                  <div key={ex.id || exIdx} style={{ padding: "6px 8px", borderBottom: `1px dashed ${C.border}` }}>
+                  <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8 }}>
                     {isEditing ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <div style={{ display: "flex", gap: 6, width: "100%", alignItems: "center", flexWrap: "wrap" }}>
-                          <input placeholder="Nome Esercizio" value={ex.name || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} style={{ flex: 2, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 12 }} />
-                          
+                      /* Layout Mobile Verticale per Modifica Esercizio */
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <input 
+                            placeholder="Nome Esercizio" 
+                            value={ex.name || ""} 
+                            onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, name: e.target.value }))} 
+                            style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 10px", fontSize: 13 }} 
+                          />
                           <button 
                             type="button"
                             onClick={() => openExerciseLibrary(bIdx, exIdx)} 
-                            style={{ ...secondaryBtn, padding: "4px 8px", fontSize: 11 }}
-                            title="Scegli dalla libreria"
+                            style={{ ...secondaryBtn, padding: "8px 10px", fontSize: 11, flexShrink: 0 }}
+                            title="Libreria"
                           >
-                            <Search size={13} /> Libreria
+                            <Search size={13} />
                           </button>
-
-                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>SERIE:</span>
-                            <input placeholder="3" value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: 40, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
-                          </div>
-
-                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>RIP:</span>
-                            <input placeholder="10-12" value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ width: 55, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
-                          </div>
-
-                          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <span style={{ fontSize: 10, color: C.textDim, ...fontMono }}>REC:</span>
-                            <input placeholder="90''" value={ex.rest || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: e.target.value }))} style={{ width: 50, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 4px", fontSize: 12, textAlign: "center" }} />
-                          </div>
-
-                          <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={14} color={C.danger} /></button>
+                          <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={15} color={C.danger} /></button>
                         </div>
+
+                        {/* Griglia mobile per Serie, Rip, Rec */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>SERIE</span>
+                            <input value={ex.sets || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, sets: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none" }} />
+                          </div>
+                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>RIP</span>
+                            <input value={ex.reps || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, reps: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.positive, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none" }} />
+                          </div>
+                          <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>REC</span>
+                            <input value={ex.rest || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, rest: e.target.value }))} style={{ width: "100%", background: "transparent", border: "none", color: C.text, fontSize: 13, textAlign: "center", fontWeight: "bold", outline: "none" }} />
+                          </div>
+                        </div>
+
                         <div style={{ display: "flex", gap: 6 }}>
-                          <input placeholder="Link Video YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 11 }} />
-                          <input placeholder="Note / Istruzioni" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 6px", fontSize: 11 }} />
+                          <input placeholder="Link YouTube (opzionale)" value={ex.videoUrl || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, videoUrl: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11 }} />
+                          <input placeholder="Note" value={ex.note || ""} onChange={(e) => patchExercise(activeDayIdx, bIdx, exIdx, (item) => ({ ...item, note: e.target.value }))} style={{ flex: 1, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", fontSize: 11 }} />
                         </div>
                       </div>
                     ) : (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-                          {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 4 }} />}
-                          <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13 }}>{ex.name || "Esercizio"}</span>
-                          {ex.videoUrl && (
-                            <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Guarda video">
-                              <PlayCircle size={15} color={C.accent} />
-                            </button>
-                          )}
-                          {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim }}>({ex.note})</span>}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 14, ...fontMono, fontSize: 12 }}>
-                          <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
-                          <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
-                          <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
-                          <button onClick={() => setActiveLoadExercise(ex.name)} style={{ ...secondaryBtn, padding: "4px 8px", fontSize: 11 }}>
+                      /* Layout di visualizzazione ottimizzato per Smartphone */
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                            {ex.imageUrl && <img src={ex.imageUrl} alt="" style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
+                            <span style={{ ...fontBody, fontWeight: 600, color: C.text, fontSize: 13, wordBreak: "break-word" }}>{ex.name || "Esercizio"}</span>
+                            {ex.videoUrl && (
+                              <button onClick={() => setActiveVideoUrl(ex.videoUrl)} style={iconBtn} title="Video">
+                                <PlayCircle size={16} color={C.accent} />
+                              </button>
+                            )}
+                          </div>
+                          <button onClick={() => setActiveLoadExercise(ex.name)} style={{ ...secondaryBtn, padding: "6px 10px", fontSize: 11, flexShrink: 0 }}>
                             <Dumbbell size={12} /> Carichi
                           </button>
                         </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panelHi, padding: "6px 10px", borderRadius: 6, ...fontMono, fontSize: 11 }}>
+                          <span style={{ color: C.textDim }}>Serie: <strong style={{ color: C.text }}>{ex.sets || "3"}</strong></span>
+                          <span style={{ color: C.positive, fontWeight: 600 }}>{ex.reps || "10"} rip</span>
+                          <span style={{ color: C.textDim }}>Rec: <strong style={{ color: C.text }}>{ex.rest || "90''"}</strong></span>
+                        </div>
+                        {ex.note && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, fontStyle: "italic" }}>Note: {ex.note}</span>}
                       </div>
                     )}
                   </div>
                 ))}
 
                 {isEditing && (
-                  <button onClick={() => addExercise(activeDayIdx, bIdx)} style={{ ...secondaryBtn, justifyContent: "center", fontSize: 11, padding: "4px", marginTop: 4, borderStyle: "dashed" }}>
-                    <Plus size={12} /> Aggiungi Esercizio
+                  <button onClick={() => addExercise(activeDayIdx, bIdx)} style={{ ...secondaryBtn, justifyContent: "center", fontSize: 12, padding: "8px", borderStyle: "dashed", width: "100%", marginTop: 4 }}>
+                    <Plus size={14} /> Aggiungi Esercizio
                   </button>
                 )}
               </div>
@@ -926,31 +916,31 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           ))}
 
           {isEditing && (
-            <button onClick={() => addBlock(activeDayIdx)} style={{ ...primaryBtn, marginTop: 8, fontSize: 12, padding: "6px 10px" }}>
-              <Plus size={14} /> Aggiungi Blocco
+            <button onClick={() => addBlock(activeDayIdx)} style={{ ...primaryBtn, width: "100%", marginTop: 6, fontSize: 12, padding: "8px" }}>
+              <Plus size={15} /> Aggiungi Blocco
             </button>
           )}
         </div>
       ) : null}
 
-      {/* Modale Ricerca Libreria Esercizi Supabase */}
+      {/* Modale Ricerca Libreria Esercizi */}
       {isExerciseModalOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 500, maxHeight: "80vh", display: "flex", flexDirection: "column", padding: 16 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 12 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 420, maxHeight: "85vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box" }}>
             
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text, fontSize: 18 }}>Seleziona Esercizio</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Seleziona Esercizio</span>
               <button onClick={() => setIsExerciseModalOpen(false)} style={iconBtn}><X size={20} color={C.text} /></button>
             </div>
 
             <input
-              placeholder="Cerca per nome (es. Panca, Squat...)"
+              placeholder="Cerca esercizio..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}
+              style={{ background: C.panelHi, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 10, width: "100%", boxSizing: "border-box" }}
             />
 
-            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, WebkitOverflowScrolling: "touch" }}>
               {exerciseList
                 .filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map((ex) => (
@@ -959,37 +949,36 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                     onClick={() => selectExerciseFromLibrary(ex)}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "8px 10px", background: C.panelHi, borderRadius: 6, cursor: "pointer",
+                      padding: "10px", background: C.panelHi, borderRadius: 8, cursor: "pointer",
                       border: `1px solid ${C.border}`
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                       {ex.image_url ? (
-                        <img src={ex.image_url} alt="" style={{ width: 32, height: 32, objectFit: "cover", borderRadius: 4 }} />
+                        <img src={ex.image_url} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                       ) : (
-                        <div style={{ width: 32, height: 32, background: C.border, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: 36, height: 36, background: C.border, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <Dumbbell size={16} color={C.textDim} />
                         </div>
                       )}
-                      <div>
-                        <div style={{ ...fontBody, fontSize: 13, fontWeight: 600, color: C.text }}>{ex.name}</div>
-                        <div style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{ex.category || "Generale"}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ ...fontBody, fontSize: 13, fontWeight: 600, color: C.text, wordBreak: "break-word" }}>{ex.name}</div>
+                        <div style={{ ...fontMono, fontSize: 10, color: C.textDim }}>{ex.category || "Generale"}</div>
                       </div>
                     </div>
-                    <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>Seleziona →</span>
+                    <span style={{ fontSize: 12, color: C.accent, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>Seleziona</span>
                   </div>
                 ))}
             </div>
-
           </div>
         </div>
       )}
 
       {activeVideoUrl && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 600, padding: 16, position: "relative" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text }}>Video Dimostrativo</span>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 500, padding: 14, boxSizing: "border-box" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ ...fontDisplay, color: C.text, fontSize: 15 }}>Video Dimostrativo</span>
               <button onClick={() => setActiveVideoUrl(null)} style={iconBtn}><X size={20} color={C.text} /></button>
             </div>
             <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
@@ -1005,14 +994,14 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       )}
 
       {activeLoadExercise && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, width: "100%", maxWidth: 420, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ ...fontDisplay, color: C.text }}>Carichi — {activeLoadExercise}</span>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }}>
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 380, padding: 16, boxSizing: "border-box" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ ...fontDisplay, color: C.text, fontSize: 15 }}>Carichi — {activeLoadExercise}</span>
               <button onClick={() => setActiveLoadExercise(null)} style={iconBtn}><X size={20} color={C.text} /></button>
             </div>
-            <p style={{ ...fontBody, fontSize: 13, color: C.textDim }}>
-              Funzione in arrivo: qui potrai registrare i carichi (kg/ripetizioni) per questo esercizio nel tempo.
+            <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: 0 }}>
+              Funzione in arrivo: storico dei carichi e annotazione delle prestazioni nel tempo.
             </p>
           </div>
         </div>
@@ -1068,33 +1057,33 @@ export function ProgressSection({ entries = [], onAdd }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 22, color: C.text, margin: 0 }}>TRACCIAMENTO PROGRESSI</h3>
-        <button onClick={() => setShowAdd(!showAdd)} style={primaryBtn}>
-          <Plus size={16} /> Nuova Misurazione
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI</h3>
+        <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
+          <Plus size={15} /> Misurazione
         </button>
       </div>
 
       {showAdd && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-          <h4 style={{ ...fontDisplay, fontSize: 18, color: C.accent, margin: "0 0 12px" }}>Aggiungi Aggiornamento</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 10px" }}>Nuovo Aggiornamento</h4>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <Field label="Data" type="date" value={date} onChange={setDate} />
             <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
             <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
             <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
             <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
-            <Field label="Note" value={notes} onChange={setNotes} />
           </div>
+          <Field label="Note" value={notes} onChange={setNotes} />
 
-          <div style={{ marginTop: 12, marginBottom: 14 }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO PROGRESSI</label>
+          <div style={{ margin: "10px 0 14px" }}>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
-            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer" }}>
-              <Camera size={16} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
+            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer", fontSize: 12, padding: "8px 12px" }}>
+              <Camera size={15} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
             </label>
             {photo && (
-              <div style={{ marginTop: 10, position: "relative", width: 100, height: 100 }}>
+              <div style={{ marginTop: 8, position: "relative", width: 80, height: 80 }}>
                 <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }} />
                 <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -6, right: -6, background: C.accent, border: "none", borderRadius: "50%", color: "#fff", width: 20, height: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <X size={12} />
@@ -1103,40 +1092,40 @@ export function ProgressSection({ entries = [], onAdd }) {
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={submitEntry} style={primaryBtn}>Salva Registro</button>
-            <button onClick={() => setShowAdd(false)} style={secondaryBtn}>Annulla</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13 }}>Salva</button>
+            <button onClick={() => setShowAdd(false)} style={{ ...secondaryBtn, flex: 1, fontSize: 13 }}>Annulla</button>
           </div>
         </div>
       )}
 
       {safeEntries.length === 0 ? (
-        <div style={{ padding: 20, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-          <TrendingUp size={28} color={C.textDim} style={{ marginBottom: 8 }} />
-          <p style={{ ...fontBody, margin: 0 }}>Nessun dato sul peso o misurazioni inserito finora.</p>
+        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
+          <TrendingUp size={26} color={C.textDim} style={{ marginBottom: 6 }} />
+          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[...safeEntries].reverse().map((entry) => (
-            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, display: "flex", gap: 14, alignItems: "center" }}>
+            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
               {entry.photo ? (
-                <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
+                <img src={entry.photo} alt="Progress" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 70, height: 70, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ImageOff size={20} color={C.textDim} />
+                <div style={{ width: 60, height: 60, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <ImageOff size={18} color={C.textDim} />
                 </div>
               )}
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ ...fontMono, fontSize: 12, color: C.textDim }}>{fmtDate(entry.date)}</span>
-                  <span style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{entry.weight} kg</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                  <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{fmtDate(entry.date)}</span>
+                  <span style={{ ...fontDisplay, fontSize: 18, color: C.positive }}>{entry.weight} kg</span>
                 </div>
-                <div style={{ display: "flex", gap: 12, ...fontMono, fontSize: 11, color: C.textDim }}>
+                <div style={{ display: "flex", gap: 8, ...fontMono, fontSize: 10, color: C.textDim, flexWrap: "wrap" }}>
                   {entry.waist && <span>Vita: {entry.waist}cm</span>}
                   {entry.chest && <span>Petto: {entry.chest}cm</span>}
                   {entry.hips && <span>Fianchi: {entry.hips}cm</span>}
                 </div>
-                {entry.notes && <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: "6px 0 0" }}>{entry.notes}</p>}
+                {entry.notes && <p style={{ ...fontBody, fontSize: 12, color: C.text, margin: "4px 0 0", wordBreak: "break-word" }}>{entry.notes}</p>}
               </div>
             </div>
           ))}
@@ -1147,11 +1136,11 @@ export function ProgressSection({ entries = [], onAdd }) {
 }
 
 // ============================================================
-// COMPONENTE APP PRINCIPALE (Con Auto-Collegamento Email)
+// COMPONENTE APP PRINCIPALE
 // ============================================================
 export default function App() {
   const [session, setSession] = useState(undefined);
-  const [role, setRole] = useState(null); // "trainer" | "client" | "pending"
+  const [role, setRole] = useState(null); 
   const [myClientRecord, setMyClientRecord] = useState(null);
 
   useEffect(() => {
@@ -1190,29 +1179,23 @@ export default function App() {
         .eq('auth_user_id', session.user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Errore nel recupero del cliente tramite auth_user_id:", error);
-      }
-
       if (!data) {
         const userEmail = session.user.email;
-        const { data: clientByEmail, error: emailError } = await supabase
+        const { data: clientByEmail } = await supabase
           .from('clients')
           .select('*')
           .eq('email', userEmail)
           .maybeSingle();
 
-        if (!emailError && clientByEmail) {
-          const { data: updatedData, error: updateError } = await supabase
+        if (clientByEmail) {
+          const { data: updatedData } = await supabase
             .from('clients')
             .update({ auth_user_id: session.user.id })
             .eq('id', clientByEmail.id)
             .select()
             .single();
 
-          if (!updateError && updatedData) {
-            data = updatedData;
-          }
+          if (updatedData) data = updatedData;
         }
       }
 
@@ -1220,22 +1203,13 @@ export default function App() {
         const userEmail = session.user.email;
         const defaultName = session.user.user_metadata?.name || userEmail.split('@')[0];
 
-        const { data: newClient, error: insertError } = await supabase
+        const { data: newClient } = await supabase
           .from('clients')
-          .insert([
-            {
-              auth_user_id: session.user.id,
-              email: userEmail,
-              name: defaultName,
-              intake: {}
-            }
-          ])
+          .insert([{ auth_user_id: session.user.id, email: userEmail, name: defaultName, intake: {} }])
           .select()
           .single();
 
-        if (!insertError && newClient) {
-          data = newClient;
-        }
+        if (newClient) data = newClient;
       }
 
       if (data) {
@@ -1273,19 +1247,6 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ ...fontBody, color: C.textDim }}>Caricamento profilo...</p>
-      </div>
-    );
-  }
-
-  if (role === "pending") {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 16, textAlign: "center" }}>
-        <p style={{ ...fontBody, color: C.textDim, maxWidth: 400 }}>
-          Il tuo account è stato creato, ma non è ancora associato a nessuna email cliente inserita dal trainer. Assicurati che il trainer abbia aggiunto il tuo indirizzo email esatto nella lista clienti.
-        </p>
-        <button onClick={handleLogout} style={secondaryBtn}>
-          <LogOut size={15} /> Esci
-        </button>
       </div>
     );
   }
