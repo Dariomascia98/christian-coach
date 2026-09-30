@@ -65,7 +65,8 @@ const iconBtn = {
 const inputStyle = {
   display: "block", width: "100%", maxWidth: "100%", marginTop: 4, padding: "10px 12px",
   background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 8,
-  color: C.text, ...fontBody, fontSize: 13, outline: "none", boxSizing: "border-box"
+  color: C.text, ...fontBody, fontSize: 13, outline: "none", boxSizing: "border-box",
+  WebkitAppearance: "none", appearance: "none", minHeight: "42px"
 };
 
 const WEEKDAYS = [
@@ -84,7 +85,7 @@ const ACTIVITY_LEVELS = [
 function Field({ label, type = "text", value, onChange }) {
   return (
     <div style={{ marginBottom: 10, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>{(label || "").toUpperCase()}</label>
+      <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em", display: "block", marginBottom: 2 }}>{(label || "").toUpperCase()}</label>
       <input
         type={type}
         value={value || ""}
@@ -539,7 +540,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
           <Field label="Data di nascita" type="date" value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })} />
           <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SESSO</label>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em", display: "block", marginBottom: 2 }}>SESSO</label>
             <select value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })} style={inputStyle}>
               <option value="M">Uomo (M)</option>
               <option value="F">Donna (F)</option>
@@ -550,7 +551,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
           <Field label="Peso Iniziale (kg)" type="number" value={form.startingWeight} onChange={(v) => setForm({ ...form, startingWeight: v })} />
 
           <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>LIVELLO DI ATTIVITÀ</label>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em", display: "block", marginBottom: 2 }}>LIVELLO DI ATTIVITÀ</label>
             <select value={form.activityLevel} onChange={(e) => setForm({ ...form, activityLevel: e.target.value })} style={inputStyle}>
               {ACTIVITY_LEVELS.map((a) => (<option key={a.value} value={a.value}>{a.label}</option>))}
             </select>
@@ -777,9 +778,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
           <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA SESSIONE MULTI-SERIE</span>
           
           {/* Box data perfettamente allineato */}
-          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <Field label="Data" type="date" value={date} onChange={setDate} />
-          </div>
+          <Field label="Data" type="date" value={date} onChange={setDate} />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
             <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SERIE ESEGUITE</label>
@@ -1400,9 +1399,7 @@ export function ProgressSection({ entries = [], onAdd }) {
         <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 16, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
           <h4 style={{ ...fontDisplay, fontSize: 15, color: C.accent, margin: "0 0 12px" }}>Nuovo Aggiornamento</h4>
           
-          <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <Field label="Data" type="date" value={date} onChange={setDate} />
-          </div>
+          <Field label="Data" type="date" value={date} onChange={setDate} />
           <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
           <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
           <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
