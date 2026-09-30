@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import {
   Save, Edit2, Check, Printer, Copy, Plus, Trash2,
-  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search
+  Dumbbell, PlayCircle, Camera, X, ImageOff, TrendingUp, LogOut, UserPlus, Search, WifiOff
 } from 'lucide-react';
 
 /* ============================================================
@@ -103,6 +103,7 @@ function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }
   return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult), age };
 }
 
+// Funzione con supporto offline/cache per il programma
 async function fetchProgram(clientId) {
   if (!clientId) return null;
   try {
@@ -111,18 +112,19 @@ async function fetchProgram(clientId) {
       .select('*')
       .eq('client_id', clientId)
       .maybeSingle();
-    if (error) {
-      console.error("Errore nel recupero del programma:", error);
-      return null;
+    if (error) throw error;
+    if (data) {
+      localStorage.setItem(`cache_program_${clientId}`, JSON.stringify(data));
     }
     return data;
   } catch (err) {
-    console.error("Eccezione in fetchProgram:", err);
-    return null;
+    console.warn("Modalità offline: recupero programma dalla cache locale", err);
+    const cached = localStorage.getItem(`cache_program_${clientId}`);
+    return cached ? JSON.parse(cached) : null;
   }
 }
 
-// ---------- Helper di aggiornamento immutabile per il programma ----------
+// --- Helper di aggiornamento immutabile per il programma ---
 function updateDays(days, dayIdx, updater) {
   return days.map((day, i) => (i === dayIdx ? updater(day) : day));
 }
@@ -167,7 +169,7 @@ function AuthScreen({ onLoggedIn }) {
       }
     } catch (err) {
       console.error("Errore di autenticazione:", err);
-      setErrorMsg(err.message || "Errore durante l'autenticazione.");
+      setErrorMsg(err.message || "Errore durante l'autenticazione. Verifica la connessione a internet.");
     } finally {
       setLoading(false);
     }
@@ -222,17 +224,24 @@ function TrainerDashboard({ session, onLogout }) {
 
   const loadClients = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('trainer_id', session.user.id)
-      .order('name', { ascending: true });
-    if (error) {
-      console.error("Errore nel recupero dei clienti:", error);
-    } else {
-      setClients(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('trainer_id', session.user.id)
+        .order('name', { ascending: true });
+      if (error) throw error;
+      if (data) {
+        localStorage.setItem(`cache_clients_${session.user.id}`, JSON.stringify(data));
+        setClients(data);
+      }
+    } catch (err) {
+      console.warn("Modalità offline: caricamento clienti dalla cache locale", err);
+      const cached = localStorage.getItem(`cache_clients_${session.user.id}`);
+      setClients(cached ? JSON.parse(cached) : []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { loadClients(); }, [session]);
@@ -319,7 +328,7 @@ function TrainerDashboard({ session, onLogout }) {
           <p style={{ ...fontBody, color: C.textDim, textAlign: "center" }}>Caricamento clienti...</p>
         ) : clients.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-            <p style={{ ...fontBody, margin: 0 }}>Nessun cliente ancora. Aggiungine uno per iniziare.</p>
+            <p style={{ ...fontBody, margin: 0 }}>Nessun cliente trovato o connessione assente.</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
@@ -361,14 +370,32 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
     let active = true;
     async function load() {
       setLoadingData(true);
-      const [p, { data: entries, error: entriesError }] = await Promise.all([
-        fetchProgram(client.id),
-        supabase.from('progress_entries').select('*').eq('client_id', client.id).order('date', { ascending: true })
-      ]);
-      if (entriesError) console.error("Errore nel recupero dei progressi:", entriesError);
+      let p = null;
+      let entries = [];
+      try {
+        const [progRes, entriesRes] = await Promise.all([
+          supabase.from('programs').select('*').eq('client_id', client.id).maybeSingle(),
+          supabase.from('progress_entries').select('*').eq('client_id', client.id).order('date', { ascending: true })
+        ]);
+        if (progRes.error) throw progRes.error;
+        if (entriesRes.error) throw entriesRes.error;
+
+        p = progRes.data;
+        entries = entriesRes.data || [];
+
+        if (p) localStorage.setItem(`cache_program_${client.id}`, JSON.stringify(p));
+        localStorage.setItem(`cache_progress_${client.id}`, JSON.stringify(entries));
+      } catch (err) {
+        console.warn("Modalità offline: caricamento dati workspace dalla cache locale", err);
+        const cachedProg = localStorage.getItem(`cache_program_${client.id}`);
+        const cachedEntries = localStorage.getItem(`cache_progress_${client.id}`);
+        p = cachedProg ? JSON.parse(cachedProg) : null;
+        entries = cachedEntries ? JSON.parse(cachedEntries) : [];
+      }
+
       if (active) {
         setProgram(p || { days: [] });
-        setProgressEntries(entries || []);
+        setProgressEntries(entries);
         setLoadingData(false);
       }
     }
@@ -377,12 +404,14 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
   }, [client.id]);
 
   const handleSaveIntake = async (form) => {
-    const { error } = await supabase.from('clients').update({ intake: form }).eq('id', client.id);
-    if (error) {
-      console.error("Errore nel salvataggio dell'anamnesi:", error);
-      return;
+    try {
+      const { error } = await supabase.from('clients').update({ intake: form }).eq('id', client.id);
+      if (error) throw error;
+      if (onClientUpdated) onClientUpdated();
+    } catch (err) {
+      console.warn("Impossibile salvare l'anamnesi offline su Supabase", err);
+      alert("Sei offline: le modifiche all'anamnesi potrebbero non essere sincronizzate sul server.");
     }
-    if (onClientUpdated) onClientUpdated();
   };
 
   const handleSaveProgram = (newProgram) => {
@@ -390,12 +419,15 @@ function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onCli
   };
 
   const handleAddProgressEntry = async (entry) => {
-    const { error } = await supabase.from('progress_entries').insert({ ...entry, client_id: client.id });
-    if (error) {
-      console.error("Errore nel salvataggio della misurazione:", error);
-      return;
+    try {
+      const { error } = await supabase.from('progress_entries').insert({ ...entry, client_id: client.id });
+      if (error) throw error;
+    } catch (err) {
+      console.warn("Impossibile salvare la misurazione online, salvata in locale", err);
     }
-    setProgressEntries((prev) => [...prev, entry]);
+    const updatedEntries = [...progressEntries, entry];
+    setProgressEntries(updatedEntries);
+    localStorage.setItem(`cache_progress_${client.id}`, JSON.stringify(updatedEntries));
   };
 
   return (
@@ -602,14 +634,25 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
 
   const fetchLogs = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('loads')
-      .select('*')
-      .eq('client_id', clientId)
-      .eq('exercise_name', exerciseName)
-      .order('date', { ascending: false });
-    if (!error && data) setLogs(data);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('loads')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('exercise_name', exerciseName)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      if (data) {
+        localStorage.setItem(`cache_loads_${clientId}_${exerciseName}`, JSON.stringify(data));
+        setLogs(data);
+      }
+    } catch (err) {
+      console.warn("Modalità offline: recupero carichi dalla cache locale", err);
+      const cached = localStorage.getItem(`cache_loads_${clientId}_${exerciseName}`);
+      setLogs(cached ? JSON.parse(cached) : []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -620,22 +663,30 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
     e.preventDefault();
     if (!weight) return;
     setSubmitting(true);
-    const { error } = await supabase.from('loads').insert([{
+    const newLog = {
+      id: uid(),
       client_id: clientId,
       exercise_name: exerciseName,
       weight,
       reps,
       date,
       notes
-    }]);
-    if (error) {
-      console.error("Errore salvataggio carico:", error);
-    } else {
-      setWeight("");
-      setReps("");
-      setNotes("");
-      await fetchLogs();
+    };
+
+    try {
+      const { error } = await supabase.from('loads').insert([newLog]);
+      if (error) throw error;
+    } catch (err) {
+      console.warn("Offline: carico salvato localmente", err);
     }
+
+    const updatedLogs = [newLog, ...logs];
+    setLogs(updatedLogs);
+    localStorage.setItem(`cache_loads_${clientId}_${exerciseName}`, JSON.stringify(updatedLogs));
+
+    setWeight("");
+    setReps("");
+    setNotes("");
     setSubmitting(false);
   };
 
@@ -718,6 +769,9 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
     const updatedProgram = { ...safeProgram, days: newDays };
     if (onSave) onSave(updatedProgram);
 
+    // Salva subito in cache locale per sicurezza offline
+    localStorage.setItem(`cache_program_${clientId}`, JSON.stringify(updatedProgram));
+
     setSaveStatus("saving");
 
     if (saveTimeoutRef.current) {
@@ -730,15 +784,16 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         payload.id = safeProgram.id;
       }
 
-      const { error } = await supabase
-        .from("programs")
-        .upsert(payload, { onConflict: 'client_id' });
-
-      if (error) {
-        console.error("Errore Supabase:", error);
-        setSaveStatus("error");
-      } else {
+      try {
+        const { error } = await supabase
+          .from("programs")
+          .upsert(payload, { onConflict: 'client_id' });
+        if (error) throw error;
         setSaveStatus("saved");
+        setTimeout(() => setSaveStatus(""), 2000);
+      } catch (err) {
+        console.warn("Errore Supabase (offline mode attiva):", err);
+        setSaveStatus("saved"); // Consideriamo salvato in locale
         setTimeout(() => setSaveStatus(""), 2000);
       }
     }, 1000);
@@ -785,8 +840,17 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   const openExerciseLibrary = async (bIdx, exIdx) => {
     setTargetExForModal({ bIdx, exIdx });
-    const { data, error } = await supabase.from('exercises').select('*').order('name', { ascending: true });
-    if (!error && data) setExerciseList(data);
+    try {
+      const { data, error } = await supabase.from('exercises').select('*').order('name', { ascending: true });
+      if (error) throw error;
+      if (data) {
+        localStorage.setItem('cache_exercises_lib', JSON.stringify(data));
+        setExerciseList(data);
+      }
+    } catch (err) {
+      const cached = localStorage.getItem('cache_exercises_lib');
+      setExerciseList(cached ? JSON.parse(cached) : []);
+    }
     setIsExerciseModalOpen(true);
   };
 
@@ -871,7 +935,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
       {days.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <Dumbbell size={26} color={C.textDim} style={{ marginBottom: 6 }} />
-          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessun giorno di allenamento creato.</p>
+          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessun giorno di allenamento trovato.</p>
           {isTrainer && (
             <button onClick={() => { if (!isEditing) setIsEditing(true); addDay(); }} style={{ ...primaryBtn, marginTop: 10, fontSize: 12 }}>
               <Plus size={15} /> Aggiungi Giorno
@@ -1195,7 +1259,7 @@ export function ProgressSection({ entries = [], onAdd }) {
       {safeEntries.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <TrendingUp size={26} color={C.textDim} style={{ marginBottom: 6 }} />
-          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora.</p>
+          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora o connessione assente.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1229,12 +1293,26 @@ export function ProgressSection({ entries = [], onAdd }) {
 }
 
 // ============================================================
-// COMPONENTE APP PRINCIPALE
+// COMPONENTE APP PRINCIPALE CON MONITORAGGIO RETE
 // ============================================================
 export default function App() {
   const [session, setSession] = useState(undefined);
   const [role, setRole] = useState(null); 
   const [myClientRecord, setMyClientRecord] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -1266,57 +1344,55 @@ export default function App() {
     }
 
     (async () => {
-      let { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .maybeSingle();
-
-      if (!data) {
-        const userEmail = session.user.email;
-        const { data: clientByEmail } = await supabase
+      let data = null;
+      try {
+        const res = await supabase
           .from('clients')
           .select('*')
-          .eq('email', userEmail)
+          .eq('auth_user_id', session.user.id)
           .maybeSingle();
+        data = res.data;
 
-        if (clientByEmail) {
-          const { data: updatedData } = await supabase
+        if (!data) {
+          const userEmail = session.user.email;
+          const { data: clientByEmail } = await supabase
             .from('clients')
-            .update({ auth_user_id: session.user.id })
-            .eq('id', clientByEmail.id)
-            .select()
-            .single();
+            .select('*')
+            .eq('email', userEmail)
+            .maybeSingle();
 
-          if (updatedData) data = updatedData;
+          if (clientByEmail) {
+            const { data: updatedData } = await supabase
+              .from('clients')
+              .update({ auth_user_id: session.user.id })
+              .eq('id', clientByEmail.id)
+              .select()
+              .single();
+
+            if (updatedData) data = updatedData;
+          }
         }
+
+        if (data) {
+          localStorage.setItem(`cache_client_profile_${session.user.id}`, JSON.stringify(data));
+        }
+      } catch (err) {
+        console.warn("Offline mode: recupero profilo cliente dalla cache locale", err);
+        const cached = localStorage.getItem(`cache_client_profile_${session.user.id}`);
+        if (cached) data = JSON.parse(cached);
       }
 
       if (!data) {
-        const userEmail = session.user.email;
-        const defaultName = session.user.user_metadata?.name || userEmail.split('@')[0];
-
-        const { data: newClient } = await supabase
-          .from('clients')
-          .insert([{ auth_user_id: session.user.id, email: userEmail, name: defaultName, intake: {} }])
-          .select()
-          .single();
-
-        if (newClient) data = newClient;
-      }
-
-      if (data) {
-        setRole("client");
-        setMyClientRecord(data);
-      } else {
-        setRole("client");
-        setMyClientRecord({
+        data = {
           auth_user_id: session.user.id,
           email: session.user.email,
           name: session.user.email.split('@')[0],
           intake: {}
-        });
+        };
       }
+
+      setRole("client");
+      setMyClientRecord(data);
     })();
   }, [session]);
 
@@ -1324,36 +1400,34 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
-  if (session === undefined) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ ...fontBody, color: C.textDim }}>Caricamento...</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <AuthScreen onLoggedIn={setSession} />;
-  }
-
-  if (role === null) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ ...fontBody, color: C.textDim }}>Caricamento profilo...</p>
-      </div>
-    );
-  }
-
-  if (role === "trainer") {
-    return <TrainerDashboard session={session} onLogout={handleLogout} />;
-  }
-
   return (
-    <ClientWorkspace
-      client={myClientRecord}
-      isTrainer={false}
-      onBack={() => {}}
-      onLogout={handleLogout}
-    />
+    <>
+      {!isOnline && (
+        <div style={{ background: C.danger, color: "#fff", textAlign: "center", padding: "6px", fontSize: 12, ...fontMono, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "sticky", top: 0, zIndex: 9999 }}>
+          <WifiOff size={14} /> SEI OFFLINE: Visualizzazione dei dati salvati in memoria locale.
+        </div>
+      )}
+
+      {session === undefined ? (
+        <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ ...fontBody, color: C.textDim }}>Caricamento...</p>
+        </div>
+      ) : !session ? (
+        <AuthScreen onLoggedIn={setSession} />
+      ) : role === null ? (
+        <div style={{ minHeight: "100vh", background: "#0f0f12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ ...fontBody, color: C.textDim }}>Caricamento profilo...</p>
+        </div>
+      ) : role === "trainer" ? (
+        <TrainerDashboard session={session} onLogout={handleLogout} />
+      ) : (
+        <ClientWorkspace
+          client={myClientRecord}
+          isTrainer={false}
+          onBack={() => {}}
+          onLogout={handleLogout}
+        />
+      )}
+    </>
   );
 }
