@@ -15,6 +15,7 @@ import {
    - tabella "exercises": id, name, category, image_url, trainer_id
    - tabella "progress_entries": id, client_id, date, weight, waist,
      chest, hips, notes, photo (url o base64)
+   - tabella "loads": id, client_id, exercise_name, weight, reps, date, notes
    ============================================================ */
 
 // --- Utility e Costanti Globali ---
@@ -589,6 +590,106 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
+// ---------- Modale per Storico e Inserimento Carichi ----------
+function LoadTrackerModal({ clientId, exerciseName, onClose }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [weight, setWeight] = useState("");
+  const [reps, setReps] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('loads')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('exercise_name', exerciseName)
+      .order('date', { ascending: false });
+    if (!error && data) setLogs(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (clientId && exerciseName) fetchLogs();
+  }, [clientId, exerciseName]);
+
+  const handleAddLog = async (e) => {
+    e.preventDefault();
+    if (!weight) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('loads').insert([{
+      client_id: clientId,
+      exercise_name: exerciseName,
+      weight,
+      reps,
+      date,
+      notes
+    }]);
+    if (error) {
+      console.error("Errore salvataggio carico:", error);
+    } else {
+      setWeight("");
+      setReps("");
+      setNotes("");
+      await fetchLogs();
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 420, maxHeight: "90vh", display: "flex", flexDirection: "column", padding: 16, boxSizing: "border-box" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ ...fontDisplay, color: C.text, fontSize: 16 }}>Carichi — {exerciseName}</span>
+          <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
+        </div>
+
+        {/* Form per aggiungere un nuovo carico */}
+        <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA PERFORMANCE</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <Field label="Peso (kg)*" type="text" value={weight} onChange={setWeight} />
+            <Field label="Ripetizioni" type="text" value={reps} onChange={setReps} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
+            <Field label="Data" type="date" value={date} onChange={setDate} />
+            <Field label="Note (es. RPE, sensazioni)" type="text" value={notes} onChange={setNotes} />
+          </div>
+          <button type="submit" disabled={submitting} style={{ ...primaryBtn, width: "100%", marginTop: 4, opacity: submitting ? 0.7 : 1 }}>
+            <Plus size={14} /> {submitting ? "Salvataggio..." : "Aggiungi Carico"}
+          </button>
+        </form>
+
+        {/* Storico carichi */}
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, WebkitOverflowScrolling: "touch" }}>
+          <span style={{ ...fontMono, fontSize: 11, color: C.textDim, marginBottom: 2 }}>STORICO PRECEDENTE</span>
+          {loading ? (
+            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center" }}>Caricamento storico...</p>
+          ) : logs.length === 0 ? (
+            <p style={{ ...fontBody, fontSize: 12, color: C.textDim, textAlign: "center", padding: 10 }}>Nessuna performance registrata per questo esercizio.</p>
+          ) : (
+            logs.map((log) => (
+              <div key={log.id} style={{ background: C.panelHi, padding: 10, borderRadius: 8, border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <span style={{ ...fontDisplay, fontSize: 16, color: C.positive }}>{log.weight} kg</span>
+                    {log.reps && <span style={{ ...fontBody, fontSize: 13, color: C.text }}>× {log.reps} rip</span>}
+                  </div>
+                  {log.notes && <span style={{ ...fontBody, fontSize: 11, color: C.textDim, display: "block", marginTop: 2 }}>{log.notes}</span>}
+                </div>
+                <span style={{ ...fontMono, fontSize: 10, color: C.textDim }}>{fmtDate(log.date)}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Program Section (Ottimizzato per Smartphone) ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
@@ -836,7 +937,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                 {(block.exercises || []).map((ex, exIdx) => (
                   <div key={ex.id || exIdx} style={{ padding: 10, background: isEditing ? C.panelHi : "transparent", borderBottom: `1px solid ${C.border}`, borderRadius: 8 }}>
                     {isEditing ? (
-                      /* Layout Mobile Verticale per Modifica Esercizio */
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <input 
@@ -856,7 +956,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                           <button onClick={() => deleteExercise(activeDayIdx, bIdx, exIdx)} style={iconBtn}><Trash2 size={15} color={C.danger} /></button>
                         </div>
 
-                        {/* Griglia mobile per Serie, Rip, Rec */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
                           <div style={{ background: C.panel, padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}` }}>
                             <span style={{ fontSize: 9, color: C.textDim, display: "block", ...fontMono }}>SERIE</span>
@@ -878,7 +977,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
                         </div>
                       </div>
                     ) : (
-                      /* Layout di visualizzazione ottimizzato per Smartphone */
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
@@ -993,18 +1091,13 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       )}
 
+      {/* Modale Carichi (Storico + Inserimento) */}
       {activeLoadExercise && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 12 }}>
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 380, padding: 16, boxSizing: "border-box" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ ...fontDisplay, color: C.text, fontSize: 15 }}>Carichi — {activeLoadExercise}</span>
-              <button onClick={() => setActiveLoadExercise(null)} style={iconBtn}><X size={20} color={C.text} /></button>
-            </div>
-            <p style={{ ...fontBody, fontSize: 13, color: C.textDim, margin: 0 }}>
-              Funzione in arrivo: storico dei carichi e annotazione delle prestazioni nel tempo.
-            </p>
-          </div>
-        </div>
+        <LoadTrackerModal
+          clientId={clientId}
+          exerciseName={activeLoadExercise}
+          onClose={() => setActiveLoadExercise(null)}
+        />
       )}
     </div>
   );
