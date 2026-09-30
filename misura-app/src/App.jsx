@@ -28,6 +28,23 @@ const fmtDate = (dateStr) => {
   return `${day}/${month}/${year}`;
 };
 
+// Funzione per il segnale sonoro (Beep) alla fine del timer
+const playBeep = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880; // Frequenza nota LA
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+    osc.stop(ctx.currentTime + 0.8);
+  } catch (e) {
+    console.log("Audio non supportato o bloccato dal browser");
+  }
+};
+
 const C = {
   panel: "#1e1e24",
   panelHi: "#2a2a32",
@@ -617,28 +634,8 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Componente Timer di Recupero (Stile MyFitCoach) ----------
-function RestTimer() {
-  const [timeLeft, setTimeLeft] = useState(null);
-  const [isActive, setIsActive] = useState(false);
-
-  useEffect(() => {
-    let interval = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
-
-  const startTimer = (seconds) => {
-    setTimeLeft(seconds);
-    setIsActive(true);
-  };
-
+// ---------- Componente Timer di Recupero (Sticky Header) ----------
+function RestTimer({ timeLeft, setTimeLeft, isActive, setIsActive, startTimer }) {
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -646,18 +643,27 @@ function RestTimer() {
   };
 
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, marginBottom: 12, boxSizing: "border-box", width: "100%" }}>
+    <div style={{ 
+      position: "sticky", top: 0, zIndex: 900, 
+      background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, 
+      padding: 10, marginBottom: 12, boxSizing: "border-box", width: "100%",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
+    }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
-          <Timer size={14} /> TIMER RECUPERO
+          <Timer size={14} /> TIMER RECUPERO (STICKY)
         </span>
-        {timeLeft !== null && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ ...fontDisplay, fontSize: 15, color: timeLeft === 0 ? C.positive : C.text }}>
-            {timeLeft === 0 ? "Tempo scaduto! 🔔" : formatTime(timeLeft)}
+            {timeLeft === null ? "Pronto" : timeLeft === 0 ? "Tempo scaduto! 🔔" : formatTime(timeLeft)}
           </span>
-        )}
+          {timeLeft !== null && (
+            <button type="button" onClick={() => { setIsActive(false); setTimeLeft(null); }} style={{ ...secondaryBtn, fontSize: 10, padding: "2px 6px" }}>Reset</button>
+          )}
+        </div>
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => startTimer(30)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>30s</button>
         <button type="button" onClick={() => startTimer(60)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>60s</button>
         <button type="button" onClick={() => startTimer(90)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>90s</button>
         <button type="button" onClick={() => startTimer(120)} style={{ ...secondaryBtn, fontSize: 11, padding: "6px 8px", flex: 1, minWidth: 45, justifyContent: "center" }}>120s</button>
@@ -671,15 +677,15 @@ function RestTimer() {
   );
 }
 
-// ---------- Modale Carichi con Gestione Multi-Serie e Timer ----------
-function LoadTrackerModal({ clientId, exerciseName, onClose }) {
+// ---------- Modale Carichi con Gestione Multi-Serie, RPE e Automazione Timer ----------
+function LoadTrackerModal({ clientId, exerciseName, onClose, onCompleteSetTrigger }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [setsData, setSetsData] = useState([
-    { setNum: 1, weight: "", reps: "" },
-    { setNum: 2, weight: "", reps: "" },
-    { setNum: 3, weight: "", reps: "" }
+    { setNum: 1, weight: "", reps: "", rpe: "" },
+    { setNum: 2, weight: "", reps: "", rpe: "" },
+    { setNum: 3, weight: "", reps: "", rpe: "" }
   ]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -712,8 +718,8 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   }, [clientId, exerciseName]);
 
   const handleAddSetRow = () => {
-    const lastSet = setsData[setsData.length - 1] || { weight: "", reps: "" };
-    setSetsData([...setsData, { setNum: setsData.length + 1, weight: lastSet.weight, reps: "" }]);
+    const lastSet = setsData[setsData.length - 1] || { weight: "", reps: "", rpe: "" };
+    setSetsData([...setsData, { setNum: setsData.length + 1, weight: lastSet.weight, reps: "", rpe: "" }]);
   };
 
   const handleRemoveSetRow = (index) => {
@@ -726,6 +732,15 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
     const updated = [...setsData];
     updated[index][field] = val;
     setSetsData(updated);
+  };
+
+  // Azione spunta / completamento singola serie con automazione timer
+  const handleCheckSet = (index) => {
+    const updated = [...setsData];
+    // Aziona il timer a 90 secondi (o il valore desiderato)
+    if (onCompleteSetTrigger) {
+      onCompleteSetTrigger(90);
+    }
   };
 
   const handleAddLog = async (e) => {
@@ -764,41 +779,61 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 8, boxSizing: "border-box", overflowX: "hidden" }}>
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 440, maxHeight: "92vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box", overflowX: "hidden" }}>
+      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, width: "100%", maxWidth: 460, maxHeight: "92vh", display: "flex", flexDirection: "column", padding: 14, boxSizing: "border-box", overflowX: "hidden" }}>
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8 }}>
-          <span style={{ ...fontDisplay, color: C.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Carichi & Serie — {exerciseName}</span>
+          <span style={{ ...fontDisplay, color: C.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>Carichi & RPE — {exerciseName}</span>
           <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
         </div>
-
-        {/* Timer integrato nella modale carichi */}
-        <RestTimer />
 
         <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8, boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA SESSIONE MULTI-SERIE</span>
           
-          {/* Box data perfettamente allineato */}
           <Field label="Data" type="date" value={date} onChange={setDate} />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SERIE ESEGUITE</label>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, letterSpacing: "0.1em" }}>SERIE ESEGUITE (PESO & RPE)</label>
             {setsData.map((s, idx) => (
-              <div key={idx} style={{ display: "flex", gap: 6, alignItems: "center", boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
-                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, width: 34, flexShrink: 0 }}>#{s.setNum}</span>
+              <div key={idx} style={{ display: "flex", gap: 4, alignItems: "center", boxSizing: "border-box", width: "100%", maxWidth: "100%" }}>
+                <span style={{ ...fontMono, fontSize: 11, color: C.textDim, width: 28, flexShrink: 0 }}>#{s.setNum}</span>
+                {/* Input Peso ottimizzato per mobile */}
                 <input
-                  type="text"
+                  type="number"
+                  inputMode="decimal"
                   placeholder="Kg"
                   value={s.weight}
                   onChange={(e) => handleSetChange(idx, "weight", e.target.value)}
-                  style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
+                  style={{ flex: 1.2, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box", textAlign: "center" }}
                 />
+                {/* Input Ripetizioni */}
                 <input
-                  type="text"
+                  type="number"
+                  inputMode="numeric"
                   placeholder="Rip"
                   value={s.reps}
                   onChange={(e) => handleSetChange(idx, "reps", e.target.value)}
-                  style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box" }}
+                  style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box", textAlign: "center" }}
                 />
+                {/* Input RPE (1-10) ottimizzato per mobile */}
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="10"
+                  placeholder="RPE"
+                  value={s.rpe}
+                  onChange={(e) => handleSetChange(idx, "rpe", e.target.value)}
+                  style={{ flex: 1, minWidth: 0, background: C.panel, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px", fontSize: 13, boxSizing: "border-box", textAlign: "center" }}
+                />
+                {/* Pulsante Spunta ✓ per avviare il timer automatico */}
+                <button
+                  type="button"
+                  onClick={() => handleCheckSet(idx)}
+                  title="Segna completata e avvia timer"
+                  style={{ background: C.positive, border: "none", borderRadius: 6, color: "#fff", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+                >
+                  <Check size={16} />
+                </button>
                 {setsData.length > 1 && (
                   <button type="button" onClick={() => handleRemoveSetRow(idx)} style={{ ...iconBtn, padding: 4, flexShrink: 0 }}>
                     <Trash2 size={14} color={C.danger} />
@@ -811,7 +846,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
             </button>
           </div>
 
-          <Field label="Note (es. RPE, sensazioni)" type="text" value={notes} onChange={setNotes} />
+          <Field label="Note (es. sensazioni)" type="text" value={notes} onChange={setNotes} />
 
           <button type="submit" disabled={submitting} style={{ ...primaryBtn, width: "100%", marginTop: 4, opacity: submitting ? 0.7 : 1 }}>
             <Plus size={14} /> {submitting ? "Salvataggio..." : "Salva Performance Sessione"}
@@ -835,7 +870,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
                   {log.sets && Array.isArray(log.sets) ? (
                     log.sets.map((s, sIdx) => (
                       <span key={sIdx} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 11, ...fontMono, color: C.text, boxSizing: "border-box" }}>
-                        #{s.setNum}: <strong style={{ color: C.positive }}>{s.weight}kg</strong> {s.reps ? `× ${s.reps}` : ""}
+                        #{s.setNum}: <strong style={{ color: C.positive }}>{s.weight}kg</strong> {s.reps ? `× ${s.reps}` : ""} {s.rpe ? `(RPE ${s.rpe})` : ""}
                       </span>
                     ))
                   ) : (
@@ -860,6 +895,10 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(""); 
   const [loadsMap, setLoadsMap] = useState({});
+
+  // Stati del Timer Sticky Globale
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
   
   const saveTimeoutRef = useRef(null);
 
@@ -870,6 +909,23 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   const days = safeProgram.days || [];
   const currentDay = days[activeDayIdx] || null;
+
+  // Gestione countdown timer e segnale acustico
+  useEffect(() => {
+    let timer;
+    if (isTimerRunning && timeLeft > 0) {
+      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    } else if (timeLeft === 0 && isTimerRunning) {
+      setIsTimerRunning(false);
+      playBeep();
+    }
+    return () => clearInterval(timer);
+  }, [isTimerRunning, timeLeft]);
+
+  const startTimer = (seconds) => {
+    setTimeLeft(seconds);
+    setIsTimerRunning(true);
+  };
 
   useEffect(() => {
     if (!clientId) return;
@@ -1046,6 +1102,16 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
 
   return (
     <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" }}>
+      
+      {/* Timer Sticky Header integrato in cima alla sezione programma */}
+      <RestTimer 
+        timeLeft={timeLeft} 
+        setTimeLeft={setTimeLeft} 
+        isActive={isTimerRunning} 
+        setIsActive={setIsTimerRunning} 
+        startTimer={startTimer} 
+      />
+
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8, boxSizing: "border-box" }}>
         <h3 style={{ ...fontDisplay, fontSize: 16, color: C.text, margin: 0 }}>
           {isTrainer ? `PROGRAMMA` : "IL TUO PROGRAMMA"}
@@ -1331,6 +1397,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
           clientId={clientId}
           exerciseName={activeLoadExercise}
           onClose={() => setActiveLoadExercise(null)}
+          onCompleteSetTrigger={startTimer}
         />
       )}
     </div>
