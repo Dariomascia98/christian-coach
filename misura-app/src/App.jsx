@@ -656,7 +656,6 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
     if (clientId && exerciseName) fetchLogs();
   }, [clientId, exerciseName]);
 
-  // Pre-compila l'ultima serie inserita per comodità quando si aggiunge una nuova riga
   const handleAddSetRow = () => {
     const lastSet = setsData[setsData.length - 1] || { weight: "", reps: "" };
     setSetsData([...setsData, { setNum: setsData.length + 1, weight: lastSet.weight, reps: "" }]);
@@ -687,14 +686,14 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
       client_id: clientId,
       exercise_name: exerciseName,
       date,
-      sets: setsData, // Salvataggio strutturato in multi-serie
-      weight: setsData[0]?.weight || 0, // Fallback retrocompatibilità
-      reps: setsData[0]?.reps || 0,     // Fallback retrocompatibilità
+      sets: setsData,
+      weight: setsData[0]?.weight || 0,
+      reps: setsData[0]?.reps || 0,
       notes
     };
 
     try {
-      const { error } = await supabase.from('loads'].insert([newLog]);
+      const { error } = await supabase.from('loads').insert([newLog]);
       if (error) throw error;
     } catch (err) {
       console.warn("Offline: carico multi-serie salvato localmente", err);
@@ -704,7 +703,6 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
     setLogs(updatedLogs);
     localStorage.setItem(`cache_loads_${clientId}_${exerciseName}`, JSON.stringify(updatedLogs));
 
-    // Reset parziale
     setNotes("");
     setSubmitting(false);
   };
@@ -794,7 +792,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   );
 }
 
-// ---------- Program Section (con Progressione Smart basata sull'ultima serie) ----------
+// ---------- Program Section ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
@@ -839,17 +837,15 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
     loadClientLoads();
   }, [clientId]);
 
-  // Algoritmo MyFitCoach di progressione calcolato sull'ultima performance multi-serie
   const getSmartProgression = (exName, targetRepsStr) => {
     const history = loadsMap[exName];
     if (!history || history.length === 0) return null;
     const last = history[0];
     
-    // Ricava l'ultima serie registrata o la serie di punta
     let lastWeight = 0;
     let lastReps = 0;
     if (last.sets && Array.isArray(last.sets) && last.sets.length > 0) {
-      const targetSet = last.sets[last.sets.length - 1]; // Prende l'ultima serie della sessione
+      const targetSet = last.sets[last.sets.length - 1];
       lastWeight = parseFloat(targetSet.weight) || 0;
       lastReps = parseInt(targetSet.reps) || 0;
     } else {
