@@ -103,7 +103,6 @@ function calcBmrTdee({ sex, birthDate, heightCm, startingWeight, activityLevel }
   return { bmr: Math.round(bmr), tdee: Math.round(bmr * level.mult), age };
 }
 
-// Funzione con supporto offline/cache per il programma
 async function fetchProgram(clientId) {
   if (!clientId) return null;
   try {
@@ -124,7 +123,6 @@ async function fetchProgram(clientId) {
   }
 }
 
-// --- Helper di aggiornamento immutabile per il programma ---
 function updateDays(days, dayIdx, updater) {
   return days.map((day, i) => (i === dayIdx ? updater(day) : day));
 }
@@ -209,7 +207,7 @@ function AuthScreen({ onLoggedIn }) {
 }
 
 // ============================================================
-// DASHBOARD TRAINER: elenco clienti + creazione nuovo cliente
+// DASHBOARD TRAINER
 // ============================================================
 function TrainerDashboard({ session, onLogout }) {
   const [clients, setClients] = useState([]);
@@ -358,7 +356,7 @@ function TrainerDashboard({ session, onLogout }) {
 }
 
 // ============================================================
-// WORKSPACE CLIENTE: anamnesi + programma + progressi
+// WORKSPACE CLIENTE
 // ============================================================
 function ClientWorkspace({ client, isTrainer, siblingClients = [], onBack, onClientUpdated, onLogout }) {
   const [tab, setTab] = useState("intake");
@@ -622,7 +620,7 @@ export function IntakeSection({ intake = {}, isTrainer, onSave }) {
   );
 }
 
-// ---------- Modale per Storico e Inserimento Carichi ----------
+// ---------- Modale Carichi ----------
 function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -698,7 +696,6 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
           <button onClick={onClose} style={iconBtn}><X size={20} color={C.text} /></button>
         </div>
 
-        {/* Form per aggiungere un nuovo carico */}
         <form onSubmit={handleAddLog} style={{ background: C.panelHi, padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.accent, fontWeight: 700 }}>REGISTRA PERFORMANCE</span>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
@@ -714,7 +711,6 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
           </button>
         </form>
 
-        {/* Storico carichi */}
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, WebkitOverflowScrolling: "touch" }}>
           <span style={{ ...fontMono, fontSize: 11, color: C.textDim, marginBottom: 2 }}>STORICO PRECEDENTE</span>
           {loading ? (
@@ -741,7 +737,7 @@ function LoadTrackerModal({ clientId, exerciseName, onClose }) {
   );
 }
 
-// ---------- Program Section (Ottimizzato per Smartphone) ----------
+// ---------- Program Section ----------
 export function ProgramSection({ program, isTrainer, clientId, clientName, siblingClients = [], onSave }) {
   const safeProgram = program || {};
   const [activeDayIdx, setActiveDayIdx] = useState(0);
@@ -769,7 +765,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
     const updatedProgram = { ...safeProgram, days: newDays };
     if (onSave) onSave(updatedProgram);
 
-    // Salva subito in cache locale per sicurezza offline
     localStorage.setItem(`cache_program_${clientId}`, JSON.stringify(updatedProgram));
 
     setSaveStatus("saving");
@@ -793,7 +788,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         setTimeout(() => setSaveStatus(""), 2000);
       } catch (err) {
         console.warn("Errore Supabase (offline mode attiva):", err);
-        setSaveStatus("saved"); // Consideriamo salvato in locale
+        setSaveStatus("saved");
         setTimeout(() => setSaveStatus(""), 2000);
       }
     }, 1000);
@@ -1155,7 +1150,6 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
         </div>
       )}
 
-      {/* Modale Carichi (Storico + Inserimento) */}
       {activeLoadExercise && (
         <LoadTrackerModal
           clientId={clientId}
@@ -1167,7 +1161,7 @@ export function ProgramSection({ program, isTrainer, clientId, clientName, sibli
   );
 }
 
-// ---------- Progress Section ----------
+// ---------- Sezione Progressi Ottimizzata e Ridisegnata per Mobile ----------
 export function ProgressSection({ entries = [], onAdd }) {
   const safeEntries = entries || [];
   const [showAdd, setShowAdd] = useState(false);
@@ -1214,76 +1208,103 @@ export function ProgressSection({ entries = [], onAdd }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI</h3>
-        <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 12px", fontSize: 12 }}>
-          <Plus size={15} /> Misurazione
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ ...fontDisplay, fontSize: 18, color: C.text, margin: 0 }}>PROGRESSI & MISURAZIONI</h3>
+        <button onClick={() => setShowAdd(!showAdd)} style={{ ...primaryBtn, padding: "8px 14px", fontSize: 12 }}>
+          <Plus size={15} /> Nuova Misurazione
         </button>
       </div>
 
       {showAdd && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
-          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 10px" }}>Nuovo Aggiornamento</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 18, boxSizing: "border-box" }}>
+          <h4 style={{ ...fontDisplay, fontSize: 16, color: C.accent, margin: "0 0 12px" }}>Registra Nuovo Aggiornamento</h4>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 4 }}>
             <Field label="Data" type="date" value={date} onChange={setDate} />
             <Field label="Peso (kg)*" type="number" value={weight} onChange={setWeight} />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
             <Field label="Vita (cm)" type="number" value={waist} onChange={setWaist} />
             <Field label="Petto (cm)" type="number" value={chest} onChange={setChest} />
             <Field label="Fianchi (cm)" type="number" value={hips} onChange={setHips} />
           </div>
-          <Field label="Note" value={notes} onChange={setNotes} />
 
-          <div style={{ margin: "10px 0 14px" }}>
-            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO</label>
+          <Field label="Note / Sensazioni" value={notes} onChange={setNotes} />
+
+          <div style={{ margin: "12px 0 16px" }}>
+            <label style={{ ...fontMono, fontSize: 11, color: C.textDim, display: "block", marginBottom: 6 }}>FOTO PROGRESSO</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} id="photo-upload" />
-            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer", fontSize: 12, padding: "8px 12px" }}>
-              <Camera size={15} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
+            <label htmlFor="photo-upload" style={{ ...secondaryBtn, display: "inline-flex", cursor: "pointer", fontSize: 12, padding: "10px 14px", width: "100%", justifyContent: "center" }}>
+              <Camera size={16} /> {photoProcessing ? "Elaborazione..." : photo ? "Cambia Foto" : "Carica Foto"}
             </label>
             {photo && (
-              <div style={{ marginTop: 8, position: "relative", width: 80, height: 80 }}>
-                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }} />
-                <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -6, right: -6, background: C.accent, border: "none", borderRadius: "50%", color: "#fff", width: 20, height: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ marginTop: 10, position: "relative", width: 90, height: 90, margin: "10px auto 0" }}>
+                <img src={photo} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10, border: `1px solid ${C.border}` }} />
+                <button onClick={() => setPhoto(null)} style={{ position: "absolute", top: -8, right: -8, background: C.danger, border: "none", borderRadius: "50%", color: "#fff", width: 22, height: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <X size={12} />
                 </button>
               </div>
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13 }}>Salva</button>
-            <button onClick={() => setShowAdd(false)} style={{ ...secondaryBtn, flex: 1, fontSize: 13 }}>Annulla</button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={submitEntry} style={{ ...primaryBtn, flex: 1, fontSize: 13, padding: "12px" }}>Salva Misurazione</button>
+            <button onClick={() => setShowAdd(false)} style={{ ...secondaryBtn, flex: 1, fontSize: 13, padding: "12px", justifyContent: "center" }}>Annulla</button>
           </div>
         </div>
       )}
 
       {safeEntries.length === 0 ? (
-        <div style={{ padding: 24, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 12, border: `1px solid ${C.border}` }}>
-          <TrendingUp size={26} color={C.textDim} style={{ marginBottom: 6 }} />
-          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora o connessione assente.</p>
+        <div style={{ padding: 30, textAlign: "center", color: C.textDim, background: C.panel, borderRadius: 14, border: `1px solid ${C.border}` }}>
+          <TrendingUp size={32} color={C.textDim} style={{ marginBottom: 8 }} />
+          <p style={{ ...fontBody, fontSize: 13, margin: 0 }}>Nessuna misurazione registrata finora.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[...safeEntries].reverse().map((entry) => (
-            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
-              {entry.photo ? (
-                <img src={entry.photo} alt="Progress" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 60, height: 60, borderRadius: 8, background: C.panelHi, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <ImageOff size={18} color={C.textDim} />
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                  <span style={{ ...fontMono, fontSize: 11, color: C.textDim }}>{fmtDate(entry.date)}</span>
-                  <span style={{ ...fontDisplay, fontSize: 18, color: C.positive }}>{entry.weight} kg</span>
-                </div>
-                <div style={{ display: "flex", gap: 8, ...fontMono, fontSize: 10, color: C.textDim, flexWrap: "wrap" }}>
-                  {entry.waist && <span>Vita: {entry.waist}cm</span>}
-                  {entry.chest && <span>Petto: {entry.chest}cm</span>}
-                  {entry.hips && <span>Fianchi: {entry.hips}cm</span>}
-                </div>
-                {entry.notes && <p style={{ ...fontBody, fontSize: 12, color: C.text, margin: "4px 0 0", wordBreak: "break-word" }}>{entry.notes}</p>}
+            <div key={entry.id || Math.random()} style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+              
+              {/* Header card: Data e Peso */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, paddingBottom: 8 }}>
+                <span style={{ ...fontMono, fontSize: 12, color: C.textDim, fontWeight: 600 }}>{fmtDate(entry.date)}</span>
+                <span style={{ ...fontDisplay, fontSize: 20, color: C.positive }}>{entry.weight} <span style={{ fontSize: 13, fontWeight: "normal", color: C.textDim }}>kg</span></span>
               </div>
+
+              {/* Corpo card: Foto e Misurazioni */}
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                {entry.photo && (
+                  <img src={entry.photo} alt="Progress" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.border}` }} />
+                )}
+                
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {/* Circonferenze in badge ordinati */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {entry.waist && (
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
+                        Vita: <strong>{entry.waist}</strong> cm
+                      </span>
+                    )}
+                    {entry.chest && (
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
+                        Petto: <strong>{entry.chest}</strong> cm
+                      </span>
+                    )}
+                    {entry.hips && (
+                      <span style={{ background: C.panelHi, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, ...fontMono, color: C.text }}>
+                        Fianchi: <strong>{entry.hips}</strong> cm
+                      </span>
+                    )}
+                  </div>
+
+                  {entry.notes && (
+                    <p style={{ ...fontBody, fontSize: 13, color: C.text, margin: 0, wordBreak: "break-word", background: C.panelHi, padding: 8, borderRadius: 6 }}>
+                      {entry.notes}
+                    </p>
+                  )}
+                </div>
+              </div>
+
             </div>
           ))}
         </div>
@@ -1293,7 +1314,7 @@ export function ProgressSection({ entries = [], onAdd }) {
 }
 
 // ============================================================
-// COMPONENTE APP PRINCIPALE CON MONITORAGGIO RETE
+// COMPONENTE APP PRINCIPALE
 // ============================================================
 export default function App() {
   const [session, setSession] = useState(undefined);
